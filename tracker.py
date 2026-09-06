@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import csv
+import argparse
+import copy
 import hashlib
 import io
 import json
@@ -14,6 +16,8 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from github_artifacts import GitHubArtifactError, GitHubPublicArtifacts, find_member, parse_github_time
+from email_sender import send_connectivity_test, send_email
+from notifications import build_body, build_subject, changes_between
 from performance import calculate_performance, fetch_history
 from sector_map import load_metadata, metadata_for
 
@@ -303,17 +307,35 @@ def write_reports(history: list[dict[str, str]]) -> None:
     REPORT_TXT.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def main() -> None:
+def run_tracker() -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
+    """Run existing ingestion/statistics and return only material history deltas."""
     _ensure_dirs()
     state = _load_state()
+    old_history = copy.deepcopy(_load_history())
     client = GitHubPublicArtifacts()
     snapshots = ingest_sector_snapshots(client, state)
-    history = ingest_formal_pushes(client, state, _load_history())
+    history = ingest_formal_pushes(client, state, copy.deepcopy(old_history))
     freeze_sector_context(history, snapshots, load_metadata(METADATA_CACHE))
     update_performance(history)
     _write_csv(HISTORY_CSV, history, HISTORY_FIELDS)
     write_reports(history)
     _save_state(state)
+    return history, changes_between(old_history, history)
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Update the independent signal verifier")
+    parser.add_argument("--test-email", action="store_true", help="send SMTP connectivity test only")
+    args = parser.parse_args(argv)
+    if args.test_email:
+        send_connectivity_test()
+        print("Tracker email connectivity test sent.")
+        return
+    history, changes = run_tracker()
+    if changes:
+        # Delivery failure is intentional: the workflow must fail so this
+        # one-time material change is not silently treated as notified.
+        send_email(build_subject(changes), build_body(changes, history))
     print(REPORT_TXT.read_text(encoding="utf-8"))
 
 

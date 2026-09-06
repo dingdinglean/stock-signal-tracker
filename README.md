@@ -39,8 +39,14 @@
 
 工作流使用 Python 3.11，于工作日 `23:30 UTC`（`30 23 * * 1-5`）运行，晚于
 强势板块雷达和 DXDX 雷达。它下载两个源仓库的最新成功 Artifact、更新历史、
-提交有变化的数据，并上传上述报告 Artifact。权限仅为 `contents: write`；不使用
-任何 Secret，也不会在日志写入 token 或认证信息。
+提交有变化的数据，并上传上述报告 Artifact。权限仅为 `contents: write`；不会在
+日志写入 token、邮箱或认证信息。
+
+验证器每天自动更新，但仅在新增正式推送、T+N 里程碑更新或有效性结果产生变化时
+发送邮件，避免无效日报。邮件使用 Gmail SMTP 的 STARTTLS（端口 `587`），全部
+配置都来自 Actions Secrets：`SMTP_HOST`、`SMTP_PORT`、`SMTP_USER`、
+`SMTP_PASSWORD`、`EMAIL_TO`；仓库不保存真实邮箱或密码。手动触发时可设置
+`test_email=true`，该模式只做邮件连通性测试，不运行 tracker、不会修改历史。
 
 初始追踪起点为 `2026-09-06T00:00:00Z`，可通过 `TRACKING_START_UTC` 覆盖。
 

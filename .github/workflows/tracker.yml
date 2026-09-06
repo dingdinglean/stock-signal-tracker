@@ -2,6 +2,12 @@ name: US Stock Signal Tracker
 
 on:
   workflow_dispatch:
+    inputs:
+      test_email:
+        description: "Send tracker email connectivity test only"
+        required: false
+        type: boolean
+        default: false
   schedule:
     # Runs after both source radars: strength at 22:00 UTC, DXDX at 22:30 UTC.
     - cron: "30 23 * * 1-5"
@@ -29,18 +35,35 @@ jobs:
       - name: Run verifier tests
         run: python -m pytest -q
 
+      - name: Test tracker email connectivity
+        if: ${{ inputs.test_email == true }}
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python tracker.py --test-email
+
       - name: Update formal signal history
+        if: ${{ inputs.test_email != true }}
         env:
           # Optional. The client automatically retries public cross-repo reads anonymously
           # if this repository-scoped token is rejected by a source repository.
           GH_TOKEN: ${{ github.token }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: python tracker.py
 
       - name: Show tracker report
-        if: always()
+        if: ${{ always() && inputs.test_email != true }}
         run: cat output/tracker_report.txt || true
 
       - name: Commit tracker history
+        if: ${{ inputs.test_email != true }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -53,7 +76,7 @@ jobs:
           fi
 
       - name: Upload scorecard artifact
-        if: always()
+        if: ${{ always() && inputs.test_email != true }}
         uses: actions/upload-artifact@v4
         with:
           name: stock-signal-tracker-report
