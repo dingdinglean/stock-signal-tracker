@@ -1,0 +1,2520 @@
+{
+  "symbols": {
+    "A": {
+      "industry": "Life Sciences Tools & Services",
+      "sector": "Health Care",
+      "sector_theme": "生命科学工具"
+    },
+    "AAPL": {
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "sector": "Information Technology",
+      "sector_theme": "大型科技"
+    },
+    "ABBV": {
+      "industry": "Biotechnology",
+      "sector": "Health Care",
+      "sector_theme": "生物科技"
+    },
+    "ABNB": {
+      "industry": "Hotels, Resorts & Cruise Lines",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Hotels, Resorts & Cruise Lines）"
+    },
+    "ABT": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "ACGL": {
+      "industry": "Property & Casualty Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Property & Casualty Insurance）"
+    },
+    "ACN": {
+      "industry": "IT Consulting & Other Services",
+      "sector": "Information Technology",
+      "sector_theme": "其他（IT Consulting & Other Services）"
+    },
+    "ADBE": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "应用软件"
+    },
+    "ADI": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "ADM": {
+      "industry": "Agricultural Products & Services",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Agricultural Products & Services）"
+    },
+    "ADP": {
+      "industry": "Human Resource & Employment Services",
+      "sector": "Industrials",
+      "sector_theme": "其他（Human Resource & Employment Services）"
+    },
+    "ADSK": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "应用软件"
+    },
+    "AEE": {
+      "industry": "Multi-Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Multi-Utilities）"
+    },
+    "AEP": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "AES": {
+      "industry": "Independent Power Producers & Energy Traders",
+      "sector": "Utilities",
+      "sector_theme": "其他（Independent Power Producers & Energy Traders）"
+    },
+    "AFL": {
+      "industry": "Life & Health Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Life & Health Insurance）"
+    },
+    "AIG": {
+      "industry": "Multi-line Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Multi-line Insurance）"
+    },
+    "AIZ": {
+      "industry": "Multi-line Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Multi-line Insurance）"
+    },
+    "AJG": {
+      "industry": "Insurance Brokers",
+      "sector": "Financials",
+      "sector_theme": "其他（Insurance Brokers）"
+    },
+    "AKAM": {
+      "industry": "Internet Services & Infrastructure",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Internet Services & Infrastructure）"
+    },
+    "ALB": {
+      "industry": "Specialty Chemicals",
+      "sector": "Materials",
+      "sector_theme": "其他（Specialty Chemicals）"
+    },
+    "ALGN": {
+      "industry": "Health Care Supplies",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Supplies）"
+    },
+    "ALL": {
+      "industry": "Property & Casualty Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Property & Casualty Insurance）"
+    },
+    "ALLE": {
+      "industry": "Building Products",
+      "sector": "Industrials",
+      "sector_theme": "其他（Building Products）"
+    },
+    "AMAT": {
+      "industry": "Semiconductor Materials & Equipment",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "AMCR": {
+      "industry": "Paper & Plastic Packaging Products & Materials",
+      "sector": "Materials",
+      "sector_theme": "其他（Paper & Plastic Packaging Products & Materials）"
+    },
+    "AMD": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "AME": {
+      "industry": "Electrical Components & Equipment",
+      "sector": "Industrials",
+      "sector_theme": "其他（Electrical Components & Equipment）"
+    },
+    "AMGN": {
+      "industry": "Biotechnology",
+      "sector": "Health Care",
+      "sector_theme": "生物科技"
+    },
+    "AMP": {
+      "industry": "Asset Management & Custody Banks",
+      "sector": "Financials",
+      "sector_theme": "其他（Asset Management & Custody Banks）"
+    },
+    "AMT": {
+      "industry": "Telecom Tower REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Telecom Tower REITs）"
+    },
+    "AMZN": {
+      "industry": "Broadline Retail",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "消费"
+    },
+    "ANET": {
+      "industry": "Communications Equipment",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Communications Equipment）"
+    },
+    "AON": {
+      "industry": "Insurance Brokers",
+      "sector": "Financials",
+      "sector_theme": "其他（Insurance Brokers）"
+    },
+    "AOS": {
+      "industry": "Building Products",
+      "sector": "Industrials",
+      "sector_theme": "其他（Building Products）"
+    },
+    "APA": {
+      "industry": "Oil & Gas Exploration & Production",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Exploration & Production）"
+    },
+    "APD": {
+      "industry": "Industrial Gases",
+      "sector": "Materials",
+      "sector_theme": "其他（Industrial Gases）"
+    },
+    "APH": {
+      "industry": "Electronic Components",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Electronic Components）"
+    },
+    "APO": {
+      "industry": "Asset Management & Custody Banks",
+      "sector": "Financials",
+      "sector_theme": "其他（Asset Management & Custody Banks）"
+    },
+    "APP": {
+      "industry": "Advertising",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Advertising）"
+    },
+    "APTV": {
+      "industry": "Automotive Parts & Equipment",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Automotive Parts & Equipment）"
+    },
+    "ARE": {
+      "industry": "Office REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Office REITs）"
+    },
+    "ARES": {
+      "industry": "Asset Management & Custody Banks",
+      "sector": "Financials",
+      "sector_theme": "其他（Asset Management & Custody Banks）"
+    },
+    "ATO": {
+      "industry": "Gas Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Gas Utilities）"
+    },
+    "AVGO": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "AVY": {
+      "industry": "Paper & Plastic Packaging Products & Materials",
+      "sector": "Materials",
+      "sector_theme": "其他（Paper & Plastic Packaging Products & Materials）"
+    },
+    "AWK": {
+      "industry": "Water Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Water Utilities）"
+    },
+    "AXON": {
+      "industry": "Aerospace & Defense",
+      "sector": "Industrials",
+      "sector_theme": "航空航天"
+    },
+    "AXP": {
+      "industry": "Consumer Finance",
+      "sector": "Financials",
+      "sector_theme": "其他（Consumer Finance）"
+    },
+    "AZO": {
+      "industry": "Automotive Retail",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Automotive Retail）"
+    },
+    "BA": {
+      "industry": "Aerospace & Defense",
+      "sector": "Industrials",
+      "sector_theme": "航空航天"
+    },
+    "BAC": {
+      "industry": "Diversified Banks",
+      "sector": "Financials",
+      "sector_theme": "银行"
+    },
+    "BALL": {
+      "industry": "Metal, Glass & Plastic Containers",
+      "sector": "Materials",
+      "sector_theme": "其他（Metal, Glass & Plastic Containers）"
+    },
+    "BAX": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "BBY": {
+      "industry": "Computer & Electronics Retail",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Computer & Electronics Retail）"
+    },
+    "BDX": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "BEN": {
+      "industry": "Asset Management & Custody Banks",
+      "sector": "Financials",
+      "sector_theme": "其他（Asset Management & Custody Banks）"
+    },
+    "BF-B": {
+      "industry": "Distillers & Vintners",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Distillers & Vintners）"
+    },
+    "BG": {
+      "industry": "Agricultural Products & Services",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Agricultural Products & Services）"
+    },
+    "BIIB": {
+      "industry": "Biotechnology",
+      "sector": "Health Care",
+      "sector_theme": "生物科技"
+    },
+    "BKNG": {
+      "industry": "Hotels, Resorts & Cruise Lines",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Hotels, Resorts & Cruise Lines）"
+    },
+    "BKR": {
+      "industry": "Oil & Gas Equipment & Services",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Equipment & Services）"
+    },
+    "BLDR": {
+      "industry": "Building Products",
+      "sector": "Industrials",
+      "sector_theme": "其他（Building Products）"
+    },
+    "BLK": {
+      "industry": "Asset Management & Custody Banks",
+      "sector": "Financials",
+      "sector_theme": "其他（Asset Management & Custody Banks）"
+    },
+    "BMY": {
+      "industry": "Pharmaceuticals",
+      "sector": "Health Care",
+      "sector_theme": "其他（Pharmaceuticals）"
+    },
+    "BNY": {
+      "industry": "Asset Management & Custody Banks",
+      "sector": "Financials",
+      "sector_theme": "其他（Asset Management & Custody Banks）"
+    },
+    "BR": {
+      "industry": "Data Processing & Outsourced Services",
+      "sector": "Industrials",
+      "sector_theme": "其他（Data Processing & Outsourced Services）"
+    },
+    "BRK-B": {
+      "industry": "Multi-Sector Holdings",
+      "sector": "Financials",
+      "sector_theme": "其他（Multi-Sector Holdings）"
+    },
+    "BRO": {
+      "industry": "Insurance Brokers",
+      "sector": "Financials",
+      "sector_theme": "其他（Insurance Brokers）"
+    },
+    "BSX": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "BX": {
+      "industry": "Asset Management & Custody Banks",
+      "sector": "Financials",
+      "sector_theme": "其他（Asset Management & Custody Banks）"
+    },
+    "BXP": {
+      "industry": "Office REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Office REITs）"
+    },
+    "C": {
+      "industry": "Diversified Banks",
+      "sector": "Financials",
+      "sector_theme": "银行"
+    },
+    "CAH": {
+      "industry": "Health Care Distributors",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Distributors）"
+    },
+    "CARR": {
+      "industry": "Building Products",
+      "sector": "Industrials",
+      "sector_theme": "其他（Building Products）"
+    },
+    "CASY": {
+      "industry": "Food Retail",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Food Retail）"
+    },
+    "CAT": {
+      "industry": "Construction Machinery & Heavy Transportation Equipment",
+      "sector": "Industrials",
+      "sector_theme": "工业"
+    },
+    "CB": {
+      "industry": "Property & Casualty Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Property & Casualty Insurance）"
+    },
+    "CBOE": {
+      "industry": "Financial Exchanges & Data",
+      "sector": "Financials",
+      "sector_theme": "其他（Financial Exchanges & Data）"
+    },
+    "CBRE": {
+      "industry": "Real Estate Services",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Real Estate Services）"
+    },
+    "CCI": {
+      "industry": "Telecom Tower REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Telecom Tower REITs）"
+    },
+    "CCL": {
+      "industry": "Hotels, Resorts & Cruise Lines",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Hotels, Resorts & Cruise Lines）"
+    },
+    "CDNS": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "应用软件"
+    },
+    "CDW": {
+      "industry": "Technology Distributors",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Technology Distributors）"
+    },
+    "CEG": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "CF": {
+      "industry": "Fertilizers & Agricultural Chemicals",
+      "sector": "Materials",
+      "sector_theme": "其他（Fertilizers & Agricultural Chemicals）"
+    },
+    "CFG": {
+      "industry": "Regional Banks",
+      "sector": "Financials",
+      "sector_theme": "区域银行"
+    },
+    "CHD": {
+      "industry": "Household Products",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Household Products）"
+    },
+    "CHRW": {
+      "industry": "Air Freight & Logistics",
+      "sector": "Industrials",
+      "sector_theme": "其他（Air Freight & Logistics）"
+    },
+    "CHTR": {
+      "industry": "Cable & Satellite",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Cable & Satellite）"
+    },
+    "CI": {
+      "industry": "Health Care Services",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Services）"
+    },
+    "CIEN": {
+      "industry": "Communications Equipment",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Communications Equipment）"
+    },
+    "CINF": {
+      "industry": "Property & Casualty Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Property & Casualty Insurance）"
+    },
+    "CL": {
+      "industry": "Household Products",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Household Products）"
+    },
+    "CLX": {
+      "industry": "Household Products",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Household Products）"
+    },
+    "CMCSA": {
+      "industry": "Cable & Satellite",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Cable & Satellite）"
+    },
+    "CME": {
+      "industry": "Financial Exchanges & Data",
+      "sector": "Financials",
+      "sector_theme": "其他（Financial Exchanges & Data）"
+    },
+    "CMG": {
+      "industry": "Restaurants",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Restaurants）"
+    },
+    "CMI": {
+      "industry": "Construction Machinery & Heavy Transportation Equipment",
+      "sector": "Industrials",
+      "sector_theme": "其他（Construction Machinery & Heavy Transportation Equipment）"
+    },
+    "CMS": {
+      "industry": "Multi-Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Multi-Utilities）"
+    },
+    "CNC": {
+      "industry": "Managed Health Care",
+      "sector": "Health Care",
+      "sector_theme": "其他（Managed Health Care）"
+    },
+    "CNP": {
+      "industry": "Multi-Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Multi-Utilities）"
+    },
+    "COF": {
+      "industry": "Consumer Finance",
+      "sector": "Financials",
+      "sector_theme": "其他（Consumer Finance）"
+    },
+    "COHR": {
+      "industry": "Electronic Components",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Electronic Components）"
+    },
+    "COIN": {
+      "industry": "Financial Exchanges & Data",
+      "sector": "Financials",
+      "sector_theme": "其他（Financial Exchanges & Data）"
+    },
+    "COO": {
+      "industry": "Health Care Supplies",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Supplies）"
+    },
+    "COP": {
+      "industry": "Oil & Gas Exploration & Production",
+      "sector": "Energy",
+      "sector_theme": "能源"
+    },
+    "COR": {
+      "industry": "Health Care Distributors",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Distributors）"
+    },
+    "COST": {
+      "industry": "Consumer Staples Merchandise Retail",
+      "sector": "Consumer Staples",
+      "sector_theme": "消费"
+    },
+    "CPAY": {
+      "industry": "Transaction & Payment Processing Services",
+      "sector": "Financials",
+      "sector_theme": "其他（Transaction & Payment Processing Services）"
+    },
+    "CPRT": {
+      "industry": "Diversified Support Services",
+      "sector": "Industrials",
+      "sector_theme": "其他（Diversified Support Services）"
+    },
+    "CPT": {
+      "industry": "Multi-Family Residential REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Multi-Family Residential REITs）"
+    },
+    "CRH": {
+      "industry": "Construction Materials",
+      "sector": "Materials",
+      "sector_theme": "其他（Construction Materials）"
+    },
+    "CRL": {
+      "industry": "Life Sciences Tools & Services",
+      "sector": "Health Care",
+      "sector_theme": "生命科学工具"
+    },
+    "CRM": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "云软件"
+    },
+    "CRWD": {
+      "industry": "Systems Software",
+      "sector": "Information Technology",
+      "sector_theme": "网络安全"
+    },
+    "CSCO": {
+      "industry": "Communications Equipment",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Communications Equipment）"
+    },
+    "CSGP": {
+      "industry": "Real Estate Services",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Real Estate Services）"
+    },
+    "CSX": {
+      "industry": "Rail Transportation",
+      "sector": "Industrials",
+      "sector_theme": "其他（Rail Transportation）"
+    },
+    "CTAS": {
+      "industry": "Diversified Support Services",
+      "sector": "Industrials",
+      "sector_theme": "其他（Diversified Support Services）"
+    },
+    "CTSH": {
+      "industry": "IT Consulting & Other Services",
+      "sector": "Information Technology",
+      "sector_theme": "其他（IT Consulting & Other Services）"
+    },
+    "CTVA": {
+      "industry": "Fertilizers & Agricultural Chemicals",
+      "sector": "Materials",
+      "sector_theme": "其他（Fertilizers & Agricultural Chemicals）"
+    },
+    "CVNA": {
+      "industry": "Automotive Retail",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Automotive Retail）"
+    },
+    "CVS": {
+      "industry": "Health Care Services",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Services）"
+    },
+    "CVX": {
+      "industry": "Integrated Oil & Gas",
+      "sector": "Energy",
+      "sector_theme": "能源"
+    },
+    "D": {
+      "industry": "Multi-Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Multi-Utilities）"
+    },
+    "DAL": {
+      "industry": "Passenger Airlines",
+      "sector": "Industrials",
+      "sector_theme": "其他（Passenger Airlines）"
+    },
+    "DASH": {
+      "industry": "Specialized Consumer Services",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Specialized Consumer Services）"
+    },
+    "DD": {
+      "industry": "Industrial Conglomerates",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Conglomerates）"
+    },
+    "DDOG": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "云软件"
+    },
+    "DE": {
+      "industry": "Agricultural & Farm Machinery",
+      "sector": "Industrials",
+      "sector_theme": "农业机械"
+    },
+    "DECK": {
+      "industry": "Footwear",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Footwear）"
+    },
+    "DELL": {
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Technology Hardware, Storage & Peripherals）"
+    },
+    "DG": {
+      "industry": "Consumer Staples Merchandise Retail",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Consumer Staples Merchandise Retail）"
+    },
+    "DGX": {
+      "industry": "Health Care Services",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Services）"
+    },
+    "DHI": {
+      "industry": "Homebuilding",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Homebuilding）"
+    },
+    "DHR": {
+      "industry": "Life Sciences Tools & Services",
+      "sector": "Health Care",
+      "sector_theme": "生命科学工具"
+    },
+    "DIS": {
+      "industry": "Movies & Entertainment",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Movies & Entertainment）"
+    },
+    "DLR": {
+      "industry": "Data Center REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Data Center REITs）"
+    },
+    "DLTR": {
+      "industry": "Consumer Staples Merchandise Retail",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Consumer Staples Merchandise Retail）"
+    },
+    "DOC": {
+      "industry": "Health Care REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Health Care REITs）"
+    },
+    "DOV": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "DOW": {
+      "industry": "Commodity Chemicals",
+      "sector": "Materials",
+      "sector_theme": "其他（Commodity Chemicals）"
+    },
+    "DPZ": {
+      "industry": "Restaurants",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Restaurants）"
+    },
+    "DRI": {
+      "industry": "Restaurants",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Restaurants）"
+    },
+    "DTE": {
+      "industry": "Multi-Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Multi-Utilities）"
+    },
+    "DUK": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "DVA": {
+      "industry": "Health Care Services",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Services）"
+    },
+    "DVN": {
+      "industry": "Oil & Gas Exploration & Production",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Exploration & Production）"
+    },
+    "DXCM": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "EBAY": {
+      "industry": "Broadline Retail",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Broadline Retail）"
+    },
+    "ECHO": {
+      "industry": "Wireless Telecommunication Services",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Wireless Telecommunication Services）"
+    },
+    "ECL": {
+      "industry": "Specialty Chemicals",
+      "sector": "Materials",
+      "sector_theme": "其他（Specialty Chemicals）"
+    },
+    "ED": {
+      "industry": "Multi-Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Multi-Utilities）"
+    },
+    "EFX": {
+      "industry": "Research & Consulting Services",
+      "sector": "Industrials",
+      "sector_theme": "其他（Research & Consulting Services）"
+    },
+    "EG": {
+      "industry": "Reinsurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Reinsurance）"
+    },
+    "EIX": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "EL": {
+      "industry": "Personal Care Products",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Personal Care Products）"
+    },
+    "ELV": {
+      "industry": "Managed Health Care",
+      "sector": "Health Care",
+      "sector_theme": "其他（Managed Health Care）"
+    },
+    "EME": {
+      "industry": "Construction & Engineering",
+      "sector": "Industrials",
+      "sector_theme": "其他（Construction & Engineering）"
+    },
+    "EMR": {
+      "industry": "Electrical Components & Equipment",
+      "sector": "Industrials",
+      "sector_theme": "其他（Electrical Components & Equipment）"
+    },
+    "EOG": {
+      "industry": "Oil & Gas Exploration & Production",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Exploration & Production）"
+    },
+    "EQIX": {
+      "industry": "Data Center REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Data Center REITs）"
+    },
+    "EQT": {
+      "industry": "Oil & Gas Exploration & Production",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Exploration & Production）"
+    },
+    "ERIE": {
+      "industry": "Insurance Brokers",
+      "sector": "Financials",
+      "sector_theme": "其他（Insurance Brokers）"
+    },
+    "ES": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "ESS": {
+      "industry": "Multi-Family Residential REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Multi-Family Residential REITs）"
+    },
+    "ETN": {
+      "industry": "Electrical Components & Equipment",
+      "sector": "Industrials",
+      "sector_theme": "其他（Electrical Components & Equipment）"
+    },
+    "ETR": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "EVRG": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "EW": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "EXC": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "EXE": {
+      "industry": "Oil & Gas Exploration & Production",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Exploration & Production）"
+    },
+    "EXPD": {
+      "industry": "Air Freight & Logistics",
+      "sector": "Industrials",
+      "sector_theme": "其他（Air Freight & Logistics）"
+    },
+    "EXPE": {
+      "industry": "Hotels, Resorts & Cruise Lines",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Hotels, Resorts & Cruise Lines）"
+    },
+    "EXR": {
+      "industry": "Self-Storage REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Self-Storage REITs）"
+    },
+    "F": {
+      "industry": "Automobile Manufacturers",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Automobile Manufacturers）"
+    },
+    "FANG": {
+      "industry": "Oil & Gas Exploration & Production",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Exploration & Production）"
+    },
+    "FAST": {
+      "industry": "Trading Companies & Distributors",
+      "sector": "Industrials",
+      "sector_theme": "其他（Trading Companies & Distributors）"
+    },
+    "FCX": {
+      "industry": "Copper",
+      "sector": "Materials",
+      "sector_theme": "金属/矿业"
+    },
+    "FDS": {
+      "industry": "Financial Exchanges & Data",
+      "sector": "Financials",
+      "sector_theme": "其他（Financial Exchanges & Data）"
+    },
+    "FDX": {
+      "industry": "Air Freight & Logistics",
+      "sector": "Industrials",
+      "sector_theme": "其他（Air Freight & Logistics）"
+    },
+    "FDXF": {
+      "industry": "Cargo Ground Transportation",
+      "sector": "Industrials",
+      "sector_theme": "其他（Cargo Ground Transportation）"
+    },
+    "FE": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "FERG": {
+      "industry": "Trading Companies & Distributors",
+      "sector": "Industrials",
+      "sector_theme": "其他（Trading Companies & Distributors）"
+    },
+    "FFIV": {
+      "industry": "Communications Equipment",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Communications Equipment）"
+    },
+    "FICO": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "应用软件"
+    },
+    "FIS": {
+      "industry": "Transaction & Payment Processing Services",
+      "sector": "Financials",
+      "sector_theme": "其他（Transaction & Payment Processing Services）"
+    },
+    "FISV": {
+      "industry": "Transaction & Payment Processing Services",
+      "sector": "Financials",
+      "sector_theme": "其他（Transaction & Payment Processing Services）"
+    },
+    "FITB": {
+      "industry": "Regional Banks",
+      "sector": "Financials",
+      "sector_theme": "区域银行"
+    },
+    "FIX": {
+      "industry": "Construction & Engineering",
+      "sector": "Industrials",
+      "sector_theme": "其他（Construction & Engineering）"
+    },
+    "FLEX": {
+      "industry": "Electronic Manufacturing Services",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Electronic Manufacturing Services）"
+    },
+    "FOX": {
+      "industry": "Broadcasting",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Broadcasting）"
+    },
+    "FOXA": {
+      "industry": "Broadcasting",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Broadcasting）"
+    },
+    "FRT": {
+      "industry": "Retail REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Retail REITs）"
+    },
+    "FSLR": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "FTNT": {
+      "industry": "Systems Software",
+      "sector": "Information Technology",
+      "sector_theme": "网络安全"
+    },
+    "FTV": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "GD": {
+      "industry": "Aerospace & Defense",
+      "sector": "Industrials",
+      "sector_theme": "航空航天"
+    },
+    "GDDY": {
+      "industry": "Internet Services & Infrastructure",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Internet Services & Infrastructure）"
+    },
+    "GE": {
+      "industry": "Aerospace & Defense",
+      "sector": "Industrials",
+      "sector_theme": "工业"
+    },
+    "GEHC": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "GEN": {
+      "industry": "Systems Software",
+      "sector": "Information Technology",
+      "sector_theme": "系统软件"
+    },
+    "GEV": {
+      "industry": "Heavy Electrical Equipment",
+      "sector": "Industrials",
+      "sector_theme": "其他（Heavy Electrical Equipment）"
+    },
+    "GILD": {
+      "industry": "Biotechnology",
+      "sector": "Health Care",
+      "sector_theme": "生物科技"
+    },
+    "GIS": {
+      "industry": "Packaged Foods & Meats",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Packaged Foods & Meats）"
+    },
+    "GL": {
+      "industry": "Life & Health Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Life & Health Insurance）"
+    },
+    "GLW": {
+      "industry": "Electronic Components",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Electronic Components）"
+    },
+    "GM": {
+      "industry": "Automobile Manufacturers",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Automobile Manufacturers）"
+    },
+    "GNRC": {
+      "industry": "Heavy Electrical Equipment",
+      "sector": "Industrials",
+      "sector_theme": "其他（Heavy Electrical Equipment）"
+    },
+    "GOOG": {
+      "industry": "Interactive Media & Services",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Interactive Media & Services）"
+    },
+    "GOOGL": {
+      "industry": "Interactive Media & Services",
+      "sector": "Communication Services",
+      "sector_theme": "大型科技"
+    },
+    "GPC": {
+      "industry": "Distributors",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Distributors）"
+    },
+    "GPN": {
+      "industry": "Transaction & Payment Processing Services",
+      "sector": "Financials",
+      "sector_theme": "其他（Transaction & Payment Processing Services）"
+    },
+    "GRMN": {
+      "industry": "Consumer Electronics",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Consumer Electronics）"
+    },
+    "GS": {
+      "industry": "Investment Banking & Brokerage",
+      "sector": "Financials",
+      "sector_theme": "金融"
+    },
+    "GWW": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "HAL": {
+      "industry": "Oil & Gas Equipment & Services",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Equipment & Services）"
+    },
+    "HAS": {
+      "industry": "Leisure Products",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Leisure Products）"
+    },
+    "HBAN": {
+      "industry": "Regional Banks",
+      "sector": "Financials",
+      "sector_theme": "区域银行"
+    },
+    "HCA": {
+      "industry": "Health Care Facilities",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Facilities）"
+    },
+    "HD": {
+      "industry": "Home Improvement Retail",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "消费"
+    },
+    "HIG": {
+      "industry": "Property & Casualty Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Property & Casualty Insurance）"
+    },
+    "HII": {
+      "industry": "Aerospace & Defense",
+      "sector": "Industrials",
+      "sector_theme": "航空航天"
+    },
+    "HLT": {
+      "industry": "Hotels, Resorts & Cruise Lines",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Hotels, Resorts & Cruise Lines）"
+    },
+    "HON": {
+      "industry": "Industrial Conglomerates",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Conglomerates）"
+    },
+    "HONA": {
+      "industry": "Aerospace & Defense",
+      "sector": "Industrials",
+      "sector_theme": "航空航天"
+    },
+    "HOOD": {
+      "industry": "Investment Banking & Brokerage",
+      "sector": "Financials",
+      "sector_theme": "其他（Investment Banking & Brokerage）"
+    },
+    "HPE": {
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Technology Hardware, Storage & Peripherals）"
+    },
+    "HPQ": {
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Technology Hardware, Storage & Peripherals）"
+    },
+    "HRL": {
+      "industry": "Packaged Foods & Meats",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Packaged Foods & Meats）"
+    },
+    "HSIC": {
+      "industry": "Health Care Distributors",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Distributors）"
+    },
+    "HST": {
+      "industry": "Hotel & Resort REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Hotel & Resort REITs）"
+    },
+    "HSY": {
+      "industry": "Packaged Foods & Meats",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Packaged Foods & Meats）"
+    },
+    "HUBB": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "HUM": {
+      "industry": "Managed Health Care",
+      "sector": "Health Care",
+      "sector_theme": "其他（Managed Health Care）"
+    },
+    "HWM": {
+      "industry": "Aerospace & Defense",
+      "sector": "Industrials",
+      "sector_theme": "航空航天"
+    },
+    "IBKR": {
+      "industry": "Investment Banking & Brokerage",
+      "sector": "Financials",
+      "sector_theme": "其他（Investment Banking & Brokerage）"
+    },
+    "IBM": {
+      "industry": "IT Consulting & Other Services",
+      "sector": "Information Technology",
+      "sector_theme": "其他（IT Consulting & Other Services）"
+    },
+    "ICE": {
+      "industry": "Financial Exchanges & Data",
+      "sector": "Financials",
+      "sector_theme": "其他（Financial Exchanges & Data）"
+    },
+    "IDXX": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "IEX": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "IFF": {
+      "industry": "Specialty Chemicals",
+      "sector": "Materials",
+      "sector_theme": "其他（Specialty Chemicals）"
+    },
+    "INCY": {
+      "industry": "Biotechnology",
+      "sector": "Health Care",
+      "sector_theme": "生物科技"
+    },
+    "INTC": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "INTU": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "应用软件"
+    },
+    "INVH": {
+      "industry": "Single-Family Residential REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Single-Family Residential REITs）"
+    },
+    "IP": {
+      "industry": "Paper & Plastic Packaging Products & Materials",
+      "sector": "Materials",
+      "sector_theme": "其他（Paper & Plastic Packaging Products & Materials）"
+    },
+    "IQV": {
+      "industry": "Life Sciences Tools & Services",
+      "sector": "Health Care",
+      "sector_theme": "生命科学工具"
+    },
+    "IR": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "IRM": {
+      "industry": "Other Specialized REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Other Specialized REITs）"
+    },
+    "ISRG": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "IT": {
+      "industry": "IT Consulting & Other Services",
+      "sector": "Information Technology",
+      "sector_theme": "其他（IT Consulting & Other Services）"
+    },
+    "ITW": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "IVZ": {
+      "industry": "Asset Management & Custody Banks",
+      "sector": "Financials",
+      "sector_theme": "其他（Asset Management & Custody Banks）"
+    },
+    "J": {
+      "industry": "Construction & Engineering",
+      "sector": "Industrials",
+      "sector_theme": "其他（Construction & Engineering）"
+    },
+    "JBHT": {
+      "industry": "Cargo Ground Transportation",
+      "sector": "Industrials",
+      "sector_theme": "其他（Cargo Ground Transportation）"
+    },
+    "JBL": {
+      "industry": "Electronic Manufacturing Services",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Electronic Manufacturing Services）"
+    },
+    "JCI": {
+      "industry": "Building Products",
+      "sector": "Industrials",
+      "sector_theme": "其他（Building Products）"
+    },
+    "JKHY": {
+      "industry": "Transaction & Payment Processing Services",
+      "sector": "Financials",
+      "sector_theme": "其他（Transaction & Payment Processing Services）"
+    },
+    "JNJ": {
+      "industry": "Pharmaceuticals",
+      "sector": "Health Care",
+      "sector_theme": "其他（Pharmaceuticals）"
+    },
+    "JPM": {
+      "industry": "Diversified Banks",
+      "sector": "Financials",
+      "sector_theme": "银行"
+    },
+    "KDP": {
+      "industry": "Soft Drinks & Non-alcoholic Beverages",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Soft Drinks & Non-alcoholic Beverages）"
+    },
+    "KEY": {
+      "industry": "Regional Banks",
+      "sector": "Financials",
+      "sector_theme": "区域银行"
+    },
+    "KEYS": {
+      "industry": "Electronic Equipment & Instruments",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Electronic Equipment & Instruments）"
+    },
+    "KHC": {
+      "industry": "Packaged Foods & Meats",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Packaged Foods & Meats）"
+    },
+    "KIM": {
+      "industry": "Retail REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Retail REITs）"
+    },
+    "KKR": {
+      "industry": "Asset Management & Custody Banks",
+      "sector": "Financials",
+      "sector_theme": "其他（Asset Management & Custody Banks）"
+    },
+    "KLAC": {
+      "industry": "Semiconductor Materials & Equipment",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Semiconductor Materials & Equipment）"
+    },
+    "KMB": {
+      "industry": "Household Products",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Household Products）"
+    },
+    "KMI": {
+      "industry": "Oil & Gas Storage & Transportation",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Storage & Transportation）"
+    },
+    "KO": {
+      "industry": "Soft Drinks & Non-alcoholic Beverages",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Soft Drinks & Non-alcoholic Beverages）"
+    },
+    "KR": {
+      "industry": "Food Retail",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Food Retail）"
+    },
+    "KVUE": {
+      "industry": "Personal Care Products",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Personal Care Products）"
+    },
+    "L": {
+      "industry": "Multi-line Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Multi-line Insurance）"
+    },
+    "LDOS": {
+      "industry": "Diversified Support Services",
+      "sector": "Industrials",
+      "sector_theme": "其他（Diversified Support Services）"
+    },
+    "LEN": {
+      "industry": "Homebuilding",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Homebuilding）"
+    },
+    "LH": {
+      "industry": "Health Care Services",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Services）"
+    },
+    "LHX": {
+      "industry": "Aerospace & Defense",
+      "sector": "Industrials",
+      "sector_theme": "航空航天"
+    },
+    "LII": {
+      "industry": "Building Products",
+      "sector": "Industrials",
+      "sector_theme": "其他（Building Products）"
+    },
+    "LIN": {
+      "industry": "Industrial Gases",
+      "sector": "Materials",
+      "sector_theme": "其他（Industrial Gases）"
+    },
+    "LITE": {
+      "industry": "Communications Equipment",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Communications Equipment）"
+    },
+    "LLY": {
+      "industry": "Pharmaceuticals",
+      "sector": "Health Care",
+      "sector_theme": "生物医药"
+    },
+    "LMT": {
+      "industry": "Aerospace & Defense",
+      "sector": "Industrials",
+      "sector_theme": "航空航天"
+    },
+    "LNT": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "LOW": {
+      "industry": "Home Improvement Retail",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "消费"
+    },
+    "LRCX": {
+      "industry": "Semiconductor Materials & Equipment",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "LULU": {
+      "industry": "Apparel, Accessories & Luxury Goods",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Apparel, Accessories & Luxury Goods）"
+    },
+    "LUV": {
+      "industry": "Passenger Airlines",
+      "sector": "Industrials",
+      "sector_theme": "其他（Passenger Airlines）"
+    },
+    "LVS": {
+      "industry": "Casinos & Gaming",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Casinos & Gaming）"
+    },
+    "LYB": {
+      "industry": "Specialty Chemicals",
+      "sector": "Materials",
+      "sector_theme": "其他（Specialty Chemicals）"
+    },
+    "LYV": {
+      "industry": "Movies & Entertainment",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Movies & Entertainment）"
+    },
+    "MA": {
+      "industry": "Transaction & Payment Processing Services",
+      "sector": "Financials",
+      "sector_theme": "其他（Transaction & Payment Processing Services）"
+    },
+    "MAA": {
+      "industry": "Multi-Family Residential REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Multi-Family Residential REITs）"
+    },
+    "MAR": {
+      "industry": "Hotels, Resorts & Cruise Lines",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Hotels, Resorts & Cruise Lines）"
+    },
+    "MAS": {
+      "industry": "Building Products",
+      "sector": "Industrials",
+      "sector_theme": "其他（Building Products）"
+    },
+    "MCD": {
+      "industry": "Restaurants",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Restaurants）"
+    },
+    "MCHP": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "MCK": {
+      "industry": "Health Care Distributors",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Distributors）"
+    },
+    "MCO": {
+      "industry": "Financial Exchanges & Data",
+      "sector": "Financials",
+      "sector_theme": "其他（Financial Exchanges & Data）"
+    },
+    "MDLZ": {
+      "industry": "Packaged Foods & Meats",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Packaged Foods & Meats）"
+    },
+    "MDT": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "MET": {
+      "industry": "Life & Health Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Life & Health Insurance）"
+    },
+    "META": {
+      "industry": "Interactive Media & Services",
+      "sector": "Communication Services",
+      "sector_theme": "大型科技"
+    },
+    "MGM": {
+      "industry": "Casinos & Gaming",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Casinos & Gaming）"
+    },
+    "MKC": {
+      "industry": "Packaged Foods & Meats",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Packaged Foods & Meats）"
+    },
+    "MLM": {
+      "industry": "Construction Materials",
+      "sector": "Materials",
+      "sector_theme": "其他（Construction Materials）"
+    },
+    "MMM": {
+      "industry": "Industrial Conglomerates",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Conglomerates）"
+    },
+    "MNST": {
+      "industry": "Soft Drinks & Non-alcoholic Beverages",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Soft Drinks & Non-alcoholic Beverages）"
+    },
+    "MO": {
+      "industry": "Tobacco",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Tobacco）"
+    },
+    "MOS": {
+      "industry": "Fertilizers & Agricultural Chemicals",
+      "sector": "Materials",
+      "sector_theme": "其他（Fertilizers & Agricultural Chemicals）"
+    },
+    "MPC": {
+      "industry": "Oil & Gas Refining & Marketing",
+      "sector": "Energy",
+      "sector_theme": "石油炼化"
+    },
+    "MPWR": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "MRK": {
+      "industry": "Pharmaceuticals",
+      "sector": "Health Care",
+      "sector_theme": "生物医药"
+    },
+    "MRNA": {
+      "industry": "Biotechnology",
+      "sector": "Health Care",
+      "sector_theme": "生物科技"
+    },
+    "MRSH": {
+      "industry": "Insurance Brokers",
+      "sector": "Financials",
+      "sector_theme": "其他（Insurance Brokers）"
+    },
+    "MRVL": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "MS": {
+      "industry": "Investment Banking & Brokerage",
+      "sector": "Financials",
+      "sector_theme": "金融"
+    },
+    "MSCI": {
+      "industry": "Financial Exchanges & Data",
+      "sector": "Financials",
+      "sector_theme": "其他（Financial Exchanges & Data）"
+    },
+    "MSFT": {
+      "industry": "Systems Software",
+      "sector": "Information Technology",
+      "sector_theme": "云软件"
+    },
+    "MSI": {
+      "industry": "Communications Equipment",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Communications Equipment）"
+    },
+    "MTB": {
+      "industry": "Regional Banks",
+      "sector": "Financials",
+      "sector_theme": "区域银行"
+    },
+    "MTD": {
+      "industry": "Life Sciences Tools & Services",
+      "sector": "Health Care",
+      "sector_theme": "生命科学工具"
+    },
+    "MU": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "NCLH": {
+      "industry": "Hotels, Resorts & Cruise Lines",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Hotels, Resorts & Cruise Lines）"
+    },
+    "NDAQ": {
+      "industry": "Financial Exchanges & Data",
+      "sector": "Financials",
+      "sector_theme": "其他（Financial Exchanges & Data）"
+    },
+    "NDSN": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "NEE": {
+      "industry": "Multi-Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Multi-Utilities）"
+    },
+    "NEM": {
+      "industry": "Gold",
+      "sector": "Materials",
+      "sector_theme": "黄金矿业"
+    },
+    "NFLX": {
+      "industry": "Movies & Entertainment",
+      "sector": "Communication Services",
+      "sector_theme": "大型科技"
+    },
+    "NI": {
+      "industry": "Multi-Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Multi-Utilities）"
+    },
+    "NKE": {
+      "industry": "Apparel, Accessories & Luxury Goods",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Apparel, Accessories & Luxury Goods）"
+    },
+    "NOC": {
+      "industry": "Aerospace & Defense",
+      "sector": "Industrials",
+      "sector_theme": "航空航天"
+    },
+    "NOW": {
+      "industry": "Systems Software",
+      "sector": "Information Technology",
+      "sector_theme": "云软件"
+    },
+    "NRG": {
+      "industry": "Independent Power Producers & Energy Traders",
+      "sector": "Utilities",
+      "sector_theme": "其他（Independent Power Producers & Energy Traders）"
+    },
+    "NSC": {
+      "industry": "Rail Transportation",
+      "sector": "Industrials",
+      "sector_theme": "其他（Rail Transportation）"
+    },
+    "NTAP": {
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Technology Hardware, Storage & Peripherals）"
+    },
+    "NTRS": {
+      "industry": "Asset Management & Custody Banks",
+      "sector": "Financials",
+      "sector_theme": "其他（Asset Management & Custody Banks）"
+    },
+    "NUE": {
+      "industry": "Steel",
+      "sector": "Materials",
+      "sector_theme": "其他（Steel）"
+    },
+    "NVDA": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "NVR": {
+      "industry": "Homebuilding",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Homebuilding）"
+    },
+    "NWS": {
+      "industry": "Publishing",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Publishing）"
+    },
+    "NWSA": {
+      "industry": "Publishing",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Publishing）"
+    },
+    "NXPI": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "O": {
+      "industry": "Retail REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Retail REITs）"
+    },
+    "ODFL": {
+      "industry": "Cargo Ground Transportation",
+      "sector": "Industrials",
+      "sector_theme": "其他（Cargo Ground Transportation）"
+    },
+    "OKE": {
+      "industry": "Oil & Gas Storage & Transportation",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Storage & Transportation）"
+    },
+    "OMC": {
+      "industry": "Advertising",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Advertising）"
+    },
+    "ON": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "ORCL": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "云软件"
+    },
+    "ORLY": {
+      "industry": "Automotive Retail",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Automotive Retail）"
+    },
+    "OTIS": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "OXY": {
+      "industry": "Oil & Gas Exploration & Production",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Exploration & Production）"
+    },
+    "PANW": {
+      "industry": "Systems Software",
+      "sector": "Information Technology",
+      "sector_theme": "网络安全"
+    },
+    "PAYX": {
+      "industry": "Human Resource & Employment Services",
+      "sector": "Industrials",
+      "sector_theme": "其他（Human Resource & Employment Services）"
+    },
+    "PCAR": {
+      "industry": "Construction Machinery & Heavy Transportation Equipment",
+      "sector": "Industrials",
+      "sector_theme": "其他（Construction Machinery & Heavy Transportation Equipment）"
+    },
+    "PCG": {
+      "industry": "Multi-Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Multi-Utilities）"
+    },
+    "PEG": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "PEP": {
+      "industry": "Soft Drinks & Non-alcoholic Beverages",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Soft Drinks & Non-alcoholic Beverages）"
+    },
+    "PFE": {
+      "industry": "Pharmaceuticals",
+      "sector": "Health Care",
+      "sector_theme": "其他（Pharmaceuticals）"
+    },
+    "PFG": {
+      "industry": "Life & Health Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Life & Health Insurance）"
+    },
+    "PG": {
+      "industry": "Personal Care Products",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Personal Care Products）"
+    },
+    "PGR": {
+      "industry": "Property & Casualty Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Property & Casualty Insurance）"
+    },
+    "PH": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "PHM": {
+      "industry": "Homebuilding",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Homebuilding）"
+    },
+    "PKG": {
+      "industry": "Paper & Plastic Packaging Products & Materials",
+      "sector": "Materials",
+      "sector_theme": "其他（Paper & Plastic Packaging Products & Materials）"
+    },
+    "PLD": {
+      "industry": "Industrial REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Industrial REITs）"
+    },
+    "PLTR": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "AI基础设施"
+    },
+    "PM": {
+      "industry": "Tobacco",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Tobacco）"
+    },
+    "PNC": {
+      "industry": "Diversified Banks",
+      "sector": "Financials",
+      "sector_theme": "银行"
+    },
+    "PNR": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "PNW": {
+      "industry": "Multi-Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Multi-Utilities）"
+    },
+    "PODD": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "PPG": {
+      "industry": "Specialty Chemicals",
+      "sector": "Materials",
+      "sector_theme": "其他（Specialty Chemicals）"
+    },
+    "PPL": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "PRU": {
+      "industry": "Life & Health Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Life & Health Insurance）"
+    },
+    "PSA": {
+      "industry": "Self-Storage REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Self-Storage REITs）"
+    },
+    "PSKY": {
+      "industry": "Movies & Entertainment",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Movies & Entertainment）"
+    },
+    "PSX": {
+      "industry": "Oil & Gas Refining & Marketing",
+      "sector": "Energy",
+      "sector_theme": "石油炼化"
+    },
+    "PTC": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "应用软件"
+    },
+    "PWR": {
+      "industry": "Construction & Engineering",
+      "sector": "Industrials",
+      "sector_theme": "其他（Construction & Engineering）"
+    },
+    "PYPL": {
+      "industry": "Transaction & Payment Processing Services",
+      "sector": "Financials",
+      "sector_theme": "其他（Transaction & Payment Processing Services）"
+    },
+    "Q": {
+      "industry": "Semiconductor Materials & Equipment",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Semiconductor Materials & Equipment）"
+    },
+    "QCOM": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "RCL": {
+      "industry": "Hotels, Resorts & Cruise Lines",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Hotels, Resorts & Cruise Lines）"
+    },
+    "RDDT": {
+      "industry": "Interactive Media & Services",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Interactive Media & Services）"
+    },
+    "REG": {
+      "industry": "Retail REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Retail REITs）"
+    },
+    "REGN": {
+      "industry": "Biotechnology",
+      "sector": "Health Care",
+      "sector_theme": "生物医药"
+    },
+    "RF": {
+      "industry": "Regional Banks",
+      "sector": "Financials",
+      "sector_theme": "区域银行"
+    },
+    "RJF": {
+      "industry": "Investment Banking & Brokerage",
+      "sector": "Financials",
+      "sector_theme": "其他（Investment Banking & Brokerage）"
+    },
+    "RL": {
+      "industry": "Apparel, Accessories & Luxury Goods",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Apparel, Accessories & Luxury Goods）"
+    },
+    "RMD": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "ROK": {
+      "industry": "Electrical Components & Equipment",
+      "sector": "Industrials",
+      "sector_theme": "其他（Electrical Components & Equipment）"
+    },
+    "ROL": {
+      "industry": "Environmental & Facilities Services",
+      "sector": "Industrials",
+      "sector_theme": "其他（Environmental & Facilities Services）"
+    },
+    "ROP": {
+      "industry": "Electronic Equipment & Instruments",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Electronic Equipment & Instruments）"
+    },
+    "ROST": {
+      "industry": "Apparel Retail",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Apparel Retail）"
+    },
+    "RSG": {
+      "industry": "Environmental & Facilities Services",
+      "sector": "Industrials",
+      "sector_theme": "其他（Environmental & Facilities Services）"
+    },
+    "RTX": {
+      "industry": "Aerospace & Defense",
+      "sector": "Industrials",
+      "sector_theme": "航空航天"
+    },
+    "RVTY": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "SBAC": {
+      "industry": "Telecom Tower REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Telecom Tower REITs）"
+    },
+    "SBUX": {
+      "industry": "Restaurants",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Restaurants）"
+    },
+    "SCHW": {
+      "industry": "Investment Banking & Brokerage",
+      "sector": "Financials",
+      "sector_theme": "其他（Investment Banking & Brokerage）"
+    },
+    "SHW": {
+      "industry": "Specialty Chemicals",
+      "sector": "Materials",
+      "sector_theme": "其他（Specialty Chemicals）"
+    },
+    "SJM": {
+      "industry": "Packaged Foods & Meats",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Packaged Foods & Meats）"
+    },
+    "SLB": {
+      "industry": "Oil & Gas Equipment & Services",
+      "sector": "Energy",
+      "sector_theme": "能源"
+    },
+    "SMCI": {
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "sector": "Information Technology",
+      "sector_theme": "AI基础设施"
+    },
+    "SNA": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "SNDK": {
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Technology Hardware, Storage & Peripherals）"
+    },
+    "SNPS": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "应用软件"
+    },
+    "SO": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "SOLV": {
+      "industry": "Health Care Technology",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Technology）"
+    },
+    "SPG": {
+      "industry": "Retail REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Retail REITs）"
+    },
+    "SPGI": {
+      "industry": "Financial Exchanges & Data",
+      "sector": "Financials",
+      "sector_theme": "其他（Financial Exchanges & Data）"
+    },
+    "SRE": {
+      "industry": "Multi-Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Multi-Utilities）"
+    },
+    "STE": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "STLD": {
+      "industry": "Steel",
+      "sector": "Materials",
+      "sector_theme": "其他（Steel）"
+    },
+    "STT": {
+      "industry": "Asset Management & Custody Banks",
+      "sector": "Financials",
+      "sector_theme": "其他（Asset Management & Custody Banks）"
+    },
+    "STX": {
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Technology Hardware, Storage & Peripherals）"
+    },
+    "STZ": {
+      "industry": "Distillers & Vintners",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Distillers & Vintners）"
+    },
+    "SW": {
+      "industry": "Paper & Plastic Packaging Products & Materials",
+      "sector": "Materials",
+      "sector_theme": "其他（Paper & Plastic Packaging Products & Materials）"
+    },
+    "SWK": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "SWKS": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "SYF": {
+      "industry": "Consumer Finance",
+      "sector": "Financials",
+      "sector_theme": "其他（Consumer Finance）"
+    },
+    "SYK": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "SYY": {
+      "industry": "Food Distributors",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Food Distributors）"
+    },
+    "T": {
+      "industry": "Integrated Telecommunication Services",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Integrated Telecommunication Services）"
+    },
+    "TAP": {
+      "industry": "Brewers",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Brewers）"
+    },
+    "TDG": {
+      "industry": "Aerospace & Defense",
+      "sector": "Industrials",
+      "sector_theme": "航空航天"
+    },
+    "TDY": {
+      "industry": "Electronic Equipment & Instruments",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Electronic Equipment & Instruments）"
+    },
+    "TECH": {
+      "industry": "Life Sciences Tools & Services",
+      "sector": "Health Care",
+      "sector_theme": "生命科学工具"
+    },
+    "TEL": {
+      "industry": "Electronic Manufacturing Services",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Electronic Manufacturing Services）"
+    },
+    "TER": {
+      "industry": "Semiconductor Materials & Equipment",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Semiconductor Materials & Equipment）"
+    },
+    "TFC": {
+      "industry": "Diversified Banks",
+      "sector": "Financials",
+      "sector_theme": "银行"
+    },
+    "TGT": {
+      "industry": "Consumer Staples Merchandise Retail",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Consumer Staples Merchandise Retail）"
+    },
+    "TJX": {
+      "industry": "Apparel Retail",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Apparel Retail）"
+    },
+    "TKO": {
+      "industry": "Movies & Entertainment",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Movies & Entertainment）"
+    },
+    "TMO": {
+      "industry": "Life Sciences Tools & Services",
+      "sector": "Health Care",
+      "sector_theme": "生命科学工具"
+    },
+    "TMUS": {
+      "industry": "Wireless Telecommunication Services",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Wireless Telecommunication Services）"
+    },
+    "TPL": {
+      "industry": "Oil & Gas Exploration & Production",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Exploration & Production）"
+    },
+    "TPR": {
+      "industry": "Apparel, Accessories & Luxury Goods",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Apparel, Accessories & Luxury Goods）"
+    },
+    "TRGP": {
+      "industry": "Oil & Gas Storage & Transportation",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Storage & Transportation）"
+    },
+    "TRMB": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "应用软件"
+    },
+    "TROW": {
+      "industry": "Asset Management & Custody Banks",
+      "sector": "Financials",
+      "sector_theme": "其他（Asset Management & Custody Banks）"
+    },
+    "TRV": {
+      "industry": "Property & Casualty Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Property & Casualty Insurance）"
+    },
+    "TSCO": {
+      "industry": "Other Specialty Retail",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Other Specialty Retail）"
+    },
+    "TSLA": {
+      "industry": "Automobile Manufacturers",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "大型科技"
+    },
+    "TSN": {
+      "industry": "Packaged Foods & Meats",
+      "sector": "Consumer Staples",
+      "sector_theme": "其他（Packaged Foods & Meats）"
+    },
+    "TT": {
+      "industry": "Building Products",
+      "sector": "Industrials",
+      "sector_theme": "其他（Building Products）"
+    },
+    "TTD": {
+      "industry": "Advertising",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Advertising）"
+    },
+    "TTWO": {
+      "industry": "Interactive Home Entertainment",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Interactive Home Entertainment）"
+    },
+    "TXN": {
+      "industry": "Semiconductors",
+      "sector": "Information Technology",
+      "sector_theme": "半导体"
+    },
+    "TXT": {
+      "industry": "Aerospace & Defense",
+      "sector": "Industrials",
+      "sector_theme": "航空航天"
+    },
+    "TYL": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "应用软件"
+    },
+    "UAL": {
+      "industry": "Passenger Airlines",
+      "sector": "Industrials",
+      "sector_theme": "其他（Passenger Airlines）"
+    },
+    "UBER": {
+      "industry": "Passenger Ground Transportation",
+      "sector": "Industrials",
+      "sector_theme": "其他（Passenger Ground Transportation）"
+    },
+    "UDR": {
+      "industry": "Multi-Family Residential REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Multi-Family Residential REITs）"
+    },
+    "UHS": {
+      "industry": "Health Care Facilities",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Facilities）"
+    },
+    "ULTA": {
+      "industry": "Other Specialty Retail",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Other Specialty Retail）"
+    },
+    "UNH": {
+      "industry": "Managed Health Care",
+      "sector": "Health Care",
+      "sector_theme": "其他（Managed Health Care）"
+    },
+    "UNP": {
+      "industry": "Rail Transportation",
+      "sector": "Industrials",
+      "sector_theme": "其他（Rail Transportation）"
+    },
+    "UPS": {
+      "industry": "Air Freight & Logistics",
+      "sector": "Industrials",
+      "sector_theme": "其他（Air Freight & Logistics）"
+    },
+    "URI": {
+      "industry": "Trading Companies & Distributors",
+      "sector": "Industrials",
+      "sector_theme": "其他（Trading Companies & Distributors）"
+    },
+    "USB": {
+      "industry": "Diversified Banks",
+      "sector": "Financials",
+      "sector_theme": "银行"
+    },
+    "V": {
+      "industry": "Transaction & Payment Processing Services",
+      "sector": "Financials",
+      "sector_theme": "其他（Transaction & Payment Processing Services）"
+    },
+    "VEEV": {
+      "industry": "Health Care Technology",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Technology）"
+    },
+    "VICI": {
+      "industry": "Hotel & Resort REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Hotel & Resort REITs）"
+    },
+    "VLO": {
+      "industry": "Oil & Gas Refining & Marketing",
+      "sector": "Energy",
+      "sector_theme": "石油炼化"
+    },
+    "VLTO": {
+      "industry": "Environmental & Facilities Services",
+      "sector": "Industrials",
+      "sector_theme": "其他（Environmental & Facilities Services）"
+    },
+    "VMC": {
+      "industry": "Construction Materials",
+      "sector": "Materials",
+      "sector_theme": "其他（Construction Materials）"
+    },
+    "VMRK": {
+      "industry": "Multi-Family Residential REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Multi-Family Residential REITs）"
+    },
+    "VRSK": {
+      "industry": "Research & Consulting Services",
+      "sector": "Industrials",
+      "sector_theme": "其他（Research & Consulting Services）"
+    },
+    "VRSN": {
+      "industry": "Internet Services & Infrastructure",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Internet Services & Infrastructure）"
+    },
+    "VRT": {
+      "industry": "Electrical Components & Equipment",
+      "sector": "Industrials",
+      "sector_theme": "其他（Electrical Components & Equipment）"
+    },
+    "VRTX": {
+      "industry": "Biotechnology",
+      "sector": "Health Care",
+      "sector_theme": "生物医药"
+    },
+    "VST": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "VTR": {
+      "industry": "Health Care REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Health Care REITs）"
+    },
+    "VTRS": {
+      "industry": "Pharmaceuticals",
+      "sector": "Health Care",
+      "sector_theme": "其他（Pharmaceuticals）"
+    },
+    "VZ": {
+      "industry": "Integrated Telecommunication Services",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Integrated Telecommunication Services）"
+    },
+    "WAB": {
+      "industry": "Construction Machinery & Heavy Transportation Equipment",
+      "sector": "Industrials",
+      "sector_theme": "其他（Construction Machinery & Heavy Transportation Equipment）"
+    },
+    "WAT": {
+      "industry": "Life Sciences Tools & Services",
+      "sector": "Health Care",
+      "sector_theme": "生命科学工具"
+    },
+    "WBD": {
+      "industry": "Broadcasting",
+      "sector": "Communication Services",
+      "sector_theme": "其他（Broadcasting）"
+    },
+    "WDAY": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "应用软件"
+    },
+    "WDC": {
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Technology Hardware, Storage & Peripherals）"
+    },
+    "WEC": {
+      "industry": "Electric Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Electric Utilities）"
+    },
+    "WELL": {
+      "industry": "Health Care REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Health Care REITs）"
+    },
+    "WFC": {
+      "industry": "Diversified Banks",
+      "sector": "Financials",
+      "sector_theme": "银行"
+    },
+    "WM": {
+      "industry": "Environmental & Facilities Services",
+      "sector": "Industrials",
+      "sector_theme": "其他（Environmental & Facilities Services）"
+    },
+    "WMB": {
+      "industry": "Oil & Gas Storage & Transportation",
+      "sector": "Energy",
+      "sector_theme": "其他（Oil & Gas Storage & Transportation）"
+    },
+    "WMT": {
+      "industry": "Consumer Staples Merchandise Retail",
+      "sector": "Consumer Staples",
+      "sector_theme": "消费"
+    },
+    "WRB": {
+      "industry": "Property & Casualty Insurance",
+      "sector": "Financials",
+      "sector_theme": "其他（Property & Casualty Insurance）"
+    },
+    "WSM": {
+      "industry": "Homefurnishing Retail",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Homefurnishing Retail）"
+    },
+    "WST": {
+      "industry": "Health Care Supplies",
+      "sector": "Health Care",
+      "sector_theme": "其他（Health Care Supplies）"
+    },
+    "WTW": {
+      "industry": "Insurance Brokers",
+      "sector": "Financials",
+      "sector_theme": "其他（Insurance Brokers）"
+    },
+    "WY": {
+      "industry": "Timber REITs",
+      "sector": "Real Estate",
+      "sector_theme": "其他（Timber REITs）"
+    },
+    "WYNN": {
+      "industry": "Casinos & Gaming",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Casinos & Gaming）"
+    },
+    "XEL": {
+      "industry": "Multi-Utilities",
+      "sector": "Utilities",
+      "sector_theme": "其他（Multi-Utilities）"
+    },
+    "XOM": {
+      "industry": "Integrated Oil & Gas",
+      "sector": "Energy",
+      "sector_theme": "能源"
+    },
+    "XYL": {
+      "industry": "Industrial Machinery & Supplies & Components",
+      "sector": "Industrials",
+      "sector_theme": "其他（Industrial Machinery & Supplies & Components）"
+    },
+    "XYZ": {
+      "industry": "Transaction & Payment Processing Services",
+      "sector": "Financials",
+      "sector_theme": "其他（Transaction & Payment Processing Services）"
+    },
+    "YUM": {
+      "industry": "Restaurants",
+      "sector": "Consumer Discretionary",
+      "sector_theme": "其他（Restaurants）"
+    },
+    "ZBH": {
+      "industry": "Health Care Equipment",
+      "sector": "Health Care",
+      "sector_theme": "医疗设备"
+    },
+    "ZBRA": {
+      "industry": "Electronic Equipment & Instruments",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Electronic Equipment & Instruments）"
+    },
+    "ZTS": {
+      "industry": "Pharmaceuticals",
+      "sector": "Health Care",
+      "sector_theme": "其他（Pharmaceuticals）"
+    }
+  },
+  "updated_at": "2026-09-06T05:37:04.417892+00:00"
+}
