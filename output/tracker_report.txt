@@ -1,11 +1,11 @@
 【美股信号验证器】
-历史正式推送总数：0
+历史正式推送总数：1
 已成熟10日信号数：0
 强势板块内信号数：0
-非强势板块信号数：0
+非强势板块信号数：1
 
 基准：推送 Artifact 记录的 signal_price；T+N 为后续第 N 个实际交易日收盘价。
 有效性：10 个交易日内，先触及 +5% 为有效；先触及 -5% 为无效；同日双触及为无法判定。
 
 最近具体推送：
-暂无已实际发送邮件的 DXDX 股票推送。
+TROW｜2026-09-08｜价 109.77999877929688｜其他（Asset Management & Custody Banks）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
