@@ -66,8 +66,9 @@ def build_body(changes: list[dict[str, Any]], history: list[dict[str, str]]) -> 
     ]
     for change in changes:
         row = change["record"]
+        timeframe = {"weekly": "周线", "monthly": "月线"}.get(str(row.get("source_timeframe", "")), row.get("source_timeframe") or "日/4H")
         lines.extend([
-            str(row.get("symbol", "")), f"推送日：{row.get('signal_date', '')}", f"推送价：{row.get('signal_price', '')}",
+            str(row.get("symbol", "")), f"周期：{timeframe}", f"信号K：{row.get('signal_date', '')}", f"推送日：{row.get('push_date') or row.get('signal_date', '')}", f"推送价：{row.get('push_price') or row.get('signal_price', '')}",
             f"板块：{row.get('sector_theme') or '未知'}", f"板块排名：{row.get('sector_rank') or '-'}", f"强势板块：{row.get('strong_sector') or '未知'}", "",
             "本次新增：",
         ])

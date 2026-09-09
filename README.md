@@ -10,19 +10,25 @@
 
 - 统计单位是**每一次具体股票推送**，不是 S/A/B 级别汇总；同一股票在不同
   run 或不同信号 K 线再次推送，都会保留新记录。
-- 只有 DXDX Artifact 中 `dxdx_report.txt` 明确写出 `邮件是否发送：是`（或
-  明确的成功投递状态）时，`dxdx_signals.csv` 才会进入正式历史。
+- 只有日线/4H Artifact 的 `dxdx_report.txt`，或周/月 Artifact 的
+  `long_dxdx_report.txt`，明确写出 `邮件是否发送：是`（或明确的成功投递状态）时，
+  相应 CSV 才会进入正式历史。dry run 与未发送邮件的 run 永远不入库。
+- 每条记录均保留来源雷达与周期：`daily_4h`（`daily`、`4h`、`daily+4h`）或
+  `weekly_monthly`（`weekly`、`monthly`）。周/月 ID 包含 timeframe，避免同一股票
+  同期双信号碰撞。
 - 同日强势板块来自 V4 Artifact 的 `sector_strength.csv`：Rank 1 是主线，
   Rank 2–3 是强势板块，其他或缺失为非强势/未知。入库时冻结板块、排名和
   判断，今后不会因策略或元数据变化而回写历史。
 
 ## 衡量方式
 
-收益基准固定为 DXDX 推送 Artifact 中记录的 `signal_price`（即信号日收盘价）。
-`T+1 / 3 / 5 / 10 / 20` 指未来第 N 个**实际交易日**收盘价；Yahoo Finance
-仅提供后续美股日线 OHLC。
+记录同时保留 `signal_date` / `signal_price`（指标所属K）与 `push_date` /
+`push_price`（用户实际收到邮件时的市场日和最新完整 RTH 日K收盘）。收益基准固定为
+冻结的 `push_price`；`T+1 / 3 / 5 / 10 / 20` 从 `push_date` 后第 N 个**实际交易日**
+开始。Yahoo Finance 数据始终以 `prepost=False` 获取 RTH 日线；旧周/月 artifact 缺少
+`push_price` 时只回补一次当时可获得的 RTH 收盘并写入历史，之后绝不重算。
 
-- MFE / MAE：未来 10、20 个交易日最高价 / 最低价相对 `signal_price` 的变化。
+- MFE / MAE：未来 10、20 个交易日最高价 / 最低价相对 `push_price` 的变化。
 - 10 日有效性：先触及 `+5%` 为“有效”，先触及 `-5%` 为“无效”；两者均未触及
   为“中性”。若同一根日 K 同时触及两侧，保留“无法判定”，不猜测盘中先后。
 - 未走满所需交易日的指标保持空白，`effectiveness=pending`；不会用当前价伪造

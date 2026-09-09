@@ -36,7 +36,102 @@ SIGNALS = "symbol,signal_level,daily_dxdx,h4_dxdx,daily_signal_time,h4_signal_ti
 
 
 def _state():
-    return {"processed_gupiao_run_ids": [], "processed_strength_run_ids": [], "tracking_start_utc": "2026-09-06T00:00:00Z"}
+    return {"processed_gupiao_run_ids": [], "processed_long_gupiao_run_ids": [], "processed_strength_run_ids": [], "tracking_start_utc": "2026-09-06T00:00:00Z"}
+
+
+class FakeLongArtifacts:
+    def __init__(self, report: str, signals: str, run_id=34375041300, created_at="2026-09-09T16:10:00Z"):
+        self.run_id = run_id
+        self.created_at = created_at
+        self.archive = {"output/long_dxdx_report.txt": report.encode(), "output/long_dxdx_signals.csv": signals.encode()}
+
+    def workflow_runs(self, *_args, **_kwargs):
+        self.workflow_args = _args
+        return [{"id": self.run_id, "created_at": self.created_at}]
+
+    def artifact_archive(self, *_args):
+        return self.archive
+
+
+LONG_SIGNALS = "symbol,timeframe,signal_time,close,detected_at\nMETA,weekly,2026-09-04T00:00:00-04:00,616.77,2026-09-09T12:12:36-04:00\nMETA,monthly,2026-09-04T00:00:00-04:00,600.00,2026-09-09T12:12:36-04:00\n"
+
+
+def test_long_dry_run_or_unsent_artifact_does_not_enter_history():
+    state = _state()
+    assert tracker.ingest_long_formal_pushes(FakeLongArtifacts("邮件是否发送：否", LONG_SIGNALS), state, []) == []
+    assert state["processed_long_gupiao_run_ids"] == [34375041300]
+
+
+def test_long_weekly_monthly_are_independent_and_use_push_date(monkeypatch):
+    monkeypatch.setattr(tracker, "freeze_rth_push_price", lambda *_args: 123.45)
+    client = FakeLongArtifacts("邮件是否发送：是", LONG_SIGNALS)
+    history = tracker.ingest_long_formal_pushes(client, _state(), [])
+    assert client.workflow_args[1] == tracker.LONG_GUPIAO_WORKFLOW
+    assert len(history) == 2
+    assert {row["source_timeframe"] for row in history} == {"weekly", "monthly"}
+    assert {row["source_radar"] for row in history} == {"weekly_monthly"}
+    assert len({row["signal_id"] for row in history}) == 2
+    assert {row["push_date"] for row in history} == {"2026-09-09"}
+    assert {row["push_price"] for row in history} == {"123.45"}
+
+
+def test_future_long_artifact_prefers_frozen_push_price(monkeypatch):
+    signals = "symbol,timeframe,signal_time,close,push_date,push_price,detected_at\nMETA,weekly,2026-09-04T00:00:00-04:00,616.77,2026-09-09,620.5,2026-09-09T18:00:00-04:00\n"
+    monkeypatch.setattr(tracker, "freeze_rth_push_price", lambda *_args: (_ for _ in ()).throw(AssertionError("must not recompute frozen push price")))
+    history = tracker.ingest_long_formal_pushes(FakeLongArtifacts("邮件是否发送：是", signals), _state(), [])
+    assert history[0]["signal_price"] == "616.77"
+    assert history[0]["push_price"] == "620.5"
+
+
+def test_run_34375041300_parses_four_independent_formal_events(monkeypatch):
+    signals = "symbol,timeframe,signal_time,close,detected_at\nMETA,weekly,2026-09-04T00:00:00-04:00,616.77,2026-09-09T12:12:36-04:00\nVST,weekly,2026-09-04T00:00:00-04:00,149.30,2026-09-09T12:13:41-04:00\nMOS,monthly,2026-08-31T00:00:00-04:00,24.12,2026-09-09T12:12:39-04:00\nPSKY,monthly,2026-08-31T00:00:00-04:00,10.91,2026-09-09T12:13:06-04:00\n"
+    monkeypatch.setattr(tracker, "freeze_rth_push_price", lambda *_args: 100.0)
+    state = _state()
+    history = tracker.ingest_long_formal_pushes(FakeLongArtifacts("邮件是否发送：是", signals), state, [])
+    assert {(row["symbol"], row["source_timeframe"]) for row in history} == {("META", "weekly"), ("VST", "weekly"), ("MOS", "monthly"), ("PSKY", "monthly")}
+    assert tracker.ingest_long_formal_pushes(FakeLongArtifacts("邮件是否发送：是", signals), state, history) == history
+
+
+def test_legacy_daily_signal_id_stays_unchanged_and_schema_is_upgraded():
+    legacy_id = tracker.build_signal_id(10, "AMD", "2026-09-08T16:00:00-04:00")
+    history = tracker._upgrade_history([{"signal_id": legacy_id, "symbol": "AMD", "signal_date": "2026-09-08", "signal_time": "2026-09-08T16:00:00-04:00", "signal_price": "100", "source_signal_level": "A"}])
+    assert history[0]["signal_id"] == legacy_id
+    assert history[0]["source_radar"] == "daily_4h"
+    assert history[0]["source_timeframe"] == "4h"
+    assert history[0]["push_price"] == "100"
+
+
+def test_performance_starts_after_push_date_not_signal_date():
+    frame = _frame([90, 91, 100, 102, 103, 104])
+    result = calculate_performance(frame, date(2026, 9, 3), 100)
+    assert result["return_1d"] == 2.0
+
+
+def test_performance_fetch_uses_rth_prepost_false(monkeypatch):
+    import sys
+    import types
+    import performance
+
+    calls = {}
+
+    class FakeTicker:
+        def __init__(self, _symbol):
+            pass
+
+        def history(self, **kwargs):
+            calls.update(kwargs)
+            return _frame([100])
+
+    monkeypatch.setitem(sys.modules, "yfinance", types.SimpleNamespace(Ticker=FakeTicker))
+    performance.fetch_history("META", date(2026, 9, 8), today=date(2026, 9, 9))
+    assert calls["prepost"] is False
+
+
+def test_sector_snapshot_is_frozen_at_push_date():
+    event = _event("AMD")
+    event.update({"signal_date": "2026-08-31", "push_date": "2026-09-08"})
+    tracker.freeze_sector_context([event], _snapshots(), {"AMD": {"industry": "Semiconductors", "sector_theme": "半导体"}})
+    assert event["sector_snapshot_run_id"] == "7"
 
 
 def test_email_not_sent_does_not_enter_formal_history():
@@ -182,7 +277,7 @@ def test_multiple_changes_for_one_signal_render_once():
     changes = changes_between([old], [new])
     body = build_body(changes, [new])
     assert len(changes) == 1
-    assert body.count("AMD\n推送日") == 1
+    assert body.count("AMD\n周期：日/4H") == 1
     assert "T+1：+1.2%" in body and "T+5：+3.8%" in body and "有效性：有效" in body
 
 

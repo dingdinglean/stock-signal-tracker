@@ -1,14 +1,16 @@
 """交易日收益、MFE/MAE 与 10 日有效性计算。"""
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
 
 TARGET_PCT = 5.0
 STOP_PCT = -5.0
+NEW_YORK = ZoneInfo("America/New_York")
 
 
 def fetch_history(symbol: str, signal_date: date, today: date | None = None) -> pd.DataFrame:
@@ -28,6 +30,30 @@ def fetch_history(symbol: str, signal_date: date, today: date | None = None) -> 
     frame = frame.rename(columns=str.lower)
     keep = [column for column in ("open", "high", "low", "close", "volume") if column in frame.columns]
     return frame[keep].dropna(subset=["close"])
+
+
+def freeze_rth_push_price(symbol: str, delivered_at: datetime) -> float | None:
+    """Freeze the latest RTH daily close knowable when a legacy alert was sent.
+
+    A same-day manual email before 16:20 ET cannot use that still-forming
+    session's close. This deliberately selects the preceding completed RTH
+    day in that case, avoiding a retrospective/future-data baseline.
+    """
+    timestamp = delivered_at.replace(tzinfo=NEW_YORK) if delivered_at.tzinfo is None else delivered_at.astimezone(NEW_YORK)
+    cutoff = timestamp.date()
+    if (timestamp.hour, timestamp.minute) < (16, 20):
+        cutoff -= timedelta(days=1)
+    frame = fetch_history(symbol, cutoff - timedelta(days=14), today=cutoff)
+    if frame.empty:
+        return None
+    eligible = [position for position, stamp in enumerate(frame.index) if pd.Timestamp(stamp).date() <= cutoff]
+    if not eligible:
+        return None
+    try:
+        close = float(frame.iloc[eligible[-1]]["close"])
+    except (TypeError, ValueError):
+        return None
+    return close if close > 0 else None
 
 
 def _signal_close(frame: pd.DataFrame, signal_date: date) -> float | None:

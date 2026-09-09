@@ -18,13 +18,15 @@ from zoneinfo import ZoneInfo
 from github_artifacts import GitHubArtifactError, GitHubPublicArtifacts, find_member, parse_github_time
 from email_sender import send_connectivity_test, send_email
 from notifications import build_body, build_subject, changes_between
-from performance import calculate_performance, fetch_history
+from performance import calculate_performance, fetch_history, freeze_rth_push_price
 from sector_map import load_metadata, metadata_for
 
 
 GUPIAO_REPO = "dingdinglean/gupiao"
 GUPIAO_WORKFLOW = "screen.yml"
 GUPIAO_ARTIFACT = "dxdx-pullback-radar"
+LONG_GUPIAO_WORKFLOW = "long_screen.yml"
+LONG_GUPIAO_ARTIFACT = "long-dxdx-pullback-radar"
 STRENGTH_REPO = "dingdinglean/strong-pullback-screener"
 STRENGTH_WORKFLOW = "strong_pullback_screener.yml"
 STRENGTH_ARTIFACT = "market-strength-radar-v4"
@@ -42,7 +44,7 @@ REPORT_CSV = OUTPUT_DIR / "tracker_report.csv"
 REPORT_TXT = OUTPUT_DIR / "tracker_report.txt"
 
 HISTORY_FIELDS = [
-    "signal_id", "symbol", "signal_date", "signal_time", "signal_price", "source_run_id", "source_signal_level",
+    "signal_id", "symbol", "signal_date", "signal_time", "signal_price", "push_date", "push_price", "source_run_id", "source_radar", "source_timeframe", "source_signal_level",
     "daily_dxdx", "h4_dxdx", "industry", "sector_theme", "strong_sector", "sector_rank", "sector_snapshot_run_id",
     "return_1d", "return_3d", "return_5d", "return_10d", "return_20d", "mfe_10d", "mae_10d", "mfe_20d", "mae_20d",
     "effectiveness", "sessions_observed", "last_updated",
@@ -86,6 +88,7 @@ def _load_state() -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         state = {}
     state.setdefault("processed_gupiao_run_ids", [])
+    state.setdefault("processed_long_gupiao_run_ids", [])
     state.setdefault("processed_strength_run_ids", [])
     state.setdefault("tracking_start_utc", os.getenv("TRACKING_START_UTC", DEFAULT_START))
     return state
@@ -122,16 +125,56 @@ def _signal_time(row: dict[str, str], fallback: str) -> str:
     return (row.get("h4_signal_time") or row.get("daily_signal_time") or fallback).strip()
 
 
+def _parse_new_york(value: str) -> datetime | None:
+    try:
+        timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    return timestamp.replace(tzinfo=NEW_YORK) if timestamp.tzinfo is None else timestamp.astimezone(NEW_YORK)
+
+
+def _long_signal_date(row: dict[str, str], run: dict[str, Any]) -> str:
+    value = (row.get("signal_time") or "").strip()
+    parsed = _parse_new_york(value)
+    return parsed.date().isoformat() if parsed else (value[:10] if len(value) >= 10 else _market_date(run))
+
+
+def _push_datetime(row: dict[str, str], run: dict[str, Any]) -> datetime | None:
+    for value in (row.get("detected_at") or "", row.get("push_date") or "", str(run.get("created_at") or "")):
+        parsed = _parse_new_york(value)
+        if parsed:
+            return parsed
+    return None
+
+
+def _push_date(row: dict[str, str], run: dict[str, Any]) -> str:
+    explicit = (row.get("push_date") or "").strip()
+    if len(explicit) >= 10:
+        return explicit[:10]
+    delivered = _push_datetime(row, run)
+    return delivered.date().isoformat() if delivered else _market_date(run)
+
+
 def build_signal_id(run_id: int | str, symbol: str, signal_time: str) -> str:
     """One formal push per source run/symbol/signal bar; repeat pushes survive."""
     raw = f"{run_id}|{symbol.upper()}|{signal_time}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
 
+def build_long_signal_id(run_id: int | str, symbol: str, timeframe: str, signal_time: str) -> str:
+    """Keep weekly/monthly events distinct without changing legacy IDs."""
+    raw = f"{run_id}|{symbol.upper()}|{timeframe.lower()}|{signal_time}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
+
+
+def _daily_4h_timeframe(level: str) -> str:
+    return {"S": "daily+4h", "A": "4h", "B": "daily"}.get(level, "")
+
+
 def _load_history() -> list[dict[str, str]]:
     history = _read_csv(HISTORY_CSV)
     if history or not LEGACY_EVENTS_CSV.exists():
-        return history
+        return _upgrade_history(history)
     # Non-destructive one-time migration for the initial local prototype.
     migrated: list[dict[str, str]] = []
     for old in _read_csv(LEGACY_EVENTS_CSV):
@@ -152,7 +195,23 @@ def _load_history() -> list[dict[str, str]]:
             "effectiveness": old.get("effective_10d", "pending"), "sessions_observed": old.get("sessions_observed", "0"), "last_updated": old.get("last_updated_at", ""),
         })
         migrated.append(item)
-    return migrated
+    return _upgrade_history(migrated)
+
+
+def _upgrade_history(history: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Add source/push columns without rewriting existing IDs or results."""
+    for row in history:
+        for field in HISTORY_FIELDS:
+            row.setdefault(field, "")
+        if not row.get("source_radar"):
+            row["source_radar"] = "daily_4h"
+        if not row.get("source_timeframe"):
+            row["source_timeframe"] = _daily_4h_timeframe(row.get("source_signal_level", ""))
+        if not row.get("push_date"):
+            row["push_date"] = row.get("signal_date", "")
+        if not row.get("push_price"):
+            row["push_price"] = row.get("signal_price", "")
+    return history
 
 
 def ingest_sector_snapshots(client: GitHubPublicArtifacts, state: dict[str, Any]) -> list[dict[str, str]]:
@@ -228,13 +287,72 @@ def ingest_formal_pushes(client: GitHubPublicArtifacts, state: dict[str, Any], h
             event = {field: "" for field in HISTORY_FIELDS}
             event.update({
                 "signal_id": signal_id, "symbol": symbol, "signal_date": signal_date, "signal_time": signal_time,
-                "signal_price": row.get("close", ""), "source_run_id": str(run_id),
+                "signal_price": row.get("close", ""), "push_date": _market_date(run), "push_price": row.get("close", ""), "source_run_id": str(run_id),
+                "source_radar": "daily_4h", "source_timeframe": _daily_4h_timeframe(row.get("signal_level", "")),
                 "source_signal_level": row.get("signal_level", ""), "daily_dxdx": row.get("daily_dxdx", ""),
                 "h4_dxdx": row.get("h4_dxdx", ""), "effectiveness": "pending", "sessions_observed": "0",
             })
             history.append(event)
             known.add(signal_id)
     state["processed_gupiao_run_ids"] = sorted(processed)
+    return history
+
+
+def ingest_long_formal_pushes(client: GitHubPublicArtifacts, state: dict[str, Any], history: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Ingest only emailed weekly/monthly artifacts, with distinct signal IDs."""
+    known = {row.get("signal_id") for row in history}
+    processed = {int(value) for value in state["processed_long_gupiao_run_ids"]}
+    try:
+        runs = client.workflow_runs(GUPIAO_REPO, LONG_GUPIAO_WORKFLOW, since=_start(state))
+    except GitHubArtifactError as exc:
+        print(f"::warning::Long DXDX workflow list unavailable: {exc}")
+        runs = []
+    for run in runs:
+        run_id = int(run["id"])
+        if run_id in processed:
+            continue
+        try:
+            archive = client.artifact_archive(GUPIAO_REPO, run_id, LONG_GUPIAO_ARTIFACT)
+        except GitHubArtifactError as exc:
+            print(f"::warning::Long DXDX Artifact unavailable for run {run_id}: {exc}")
+            continue
+        processed.add(run_id)
+        report = _decode(find_member(archive or {}, "long_dxdx_report.txt"))
+        if not EMAIL_SENT.search(report):
+            continue
+        raw = find_member(archive or {}, "long_dxdx_signals.csv")
+        if not raw:
+            continue
+        for row in csv.DictReader(io.StringIO(_decode(raw))):
+            symbol = (row.get("symbol") or "").strip().upper()
+            timeframe = (row.get("timeframe") or "").strip().lower()
+            signal_time = (row.get("signal_time") or "").strip()
+            if not symbol or timeframe not in {"weekly", "monthly"} or not signal_time:
+                continue
+            signal_id = build_long_signal_id(run_id, symbol, timeframe, signal_time)
+            if signal_id in known:
+                continue
+            push_date = _push_date(row, run)
+            push_price = (row.get("push_price") or "").strip()
+            if not push_price:
+                delivered = _push_datetime(row, run)
+                if delivered:
+                    try:
+                        frozen = freeze_rth_push_price(symbol, delivered)
+                    except Exception as exc:
+                        print(f"::warning::{symbol} legacy push-price fetch failed: {exc}")
+                        frozen = None
+                    push_price = "" if frozen is None else str(frozen)
+            event = {field: "" for field in HISTORY_FIELDS}
+            event.update({
+                "signal_id": signal_id, "symbol": symbol, "signal_date": _long_signal_date(row, run), "signal_time": signal_time,
+                "signal_price": row.get("signal_price") or row.get("close", ""), "push_date": push_date, "push_price": push_price,
+                "source_run_id": str(run_id), "source_radar": "weekly_monthly", "source_timeframe": timeframe,
+                "effectiveness": "pending", "sessions_observed": "0",
+            })
+            history.append(event)
+            known.add(signal_id)
+    state["processed_long_gupiao_run_ids"] = sorted(processed)
     return history
 
 
@@ -246,7 +364,7 @@ def freeze_sector_context(history: list[dict[str, str]], snapshots: list[dict[st
             continue
         details = metadata_for(event["symbol"], metadata)
         event.update(details)
-        snapshot = by_date.get(event["signal_date"])
+        snapshot = by_date.get(event.get("push_date") or event["signal_date"])
         if not snapshot or not details["sector_theme"]:
             event["strong_sector"] = "未知"
             continue
@@ -267,13 +385,17 @@ def update_performance(history: list[dict[str, str]]) -> None:
             grouped[event["symbol"]].append(event)
     for symbol, events in grouped.items():
         try:
-            first = min(date.fromisoformat(item["signal_date"]) for item in events)
+            first = min(date.fromisoformat(item.get("push_date") or item["signal_date"]) for item in events)
             prices = fetch_history(symbol, first)
         except Exception as exc:
             print(f"::warning::{symbol} performance data failed: {exc}")
             continue
         for event in events:
-            event.update(calculate_performance(prices, date.fromisoformat(event["signal_date"]), event.get("signal_price")))
+            push_date = date.fromisoformat(event.get("push_date") or event["signal_date"])
+            baseline = event.get("push_price") or event.get("signal_price")
+            if event.get("source_radar") == "weekly_monthly" and not event.get("push_price"):
+                continue
+            event.update(calculate_performance(prices, push_date, baseline))
             event["last_updated"] = now
 
 
@@ -290,15 +412,15 @@ def write_reports(history: list[dict[str, str]]) -> None:
     lines = [
         "【美股信号验证器】", f"历史正式推送总数：{len(history)}", f"已成熟10日信号数：{len(matured)}",
         f"强势板块内信号数：{len(strong)}", f"非强势板块信号数：{len(non_strong)}", "",
-        "基准：推送 Artifact 记录的 signal_price；T+N 为后续第 N 个实际交易日收盘价。",
+        "基准：实际推送时冻结的 push_price；T+N 为 push_date 后第 N 个实际交易日收盘价。",
         "有效性：10 个交易日内，先触及 +5% 为有效；先触及 -5% 为无效；同日双触及为无法判定。", "", "最近具体推送：",
     ]
     if not rows:
         lines.append("暂无已实际发送邮件的 DXDX 股票推送。")
     for item in rows[:12]:
         lines.append(
-            "{symbol}｜{date}｜价 {price}｜{theme}｜排名 {rank}｜强势 {strong}｜T+5 {r5}｜T+10 {r10}｜T+20 {r20}｜MFE10 {mfe}｜MAE10 {mae}｜{effect}".format(
-                symbol=item.get("symbol", ""), date=item.get("signal_date", ""), price=item.get("signal_price", ""),
+            "{symbol}｜{timeframe}｜信号K {date}｜推送 {push_date}｜价 {price}｜{theme}｜排名 {rank}｜强势 {strong}｜T+5 {r5}｜T+10 {r10}｜T+20 {r20}｜MFE10 {mfe}｜MAE10 {mae}｜{effect}".format(
+                symbol=item.get("symbol", ""), timeframe={"weekly": "周线", "monthly": "月线"}.get(item.get("source_timeframe", ""), item.get("source_timeframe", "") or "日/4H"), date=item.get("signal_date", ""), push_date=item.get("push_date", ""), price=item.get("push_price") or item.get("signal_price", ""),
                 theme=item.get("sector_theme", "未知"), rank=item.get("sector_rank") or "-", strong=item.get("strong_sector", "未知"),
                 r5=item.get("return_5d") or "pending", r10=item.get("return_10d") or "pending", r20=item.get("return_20d") or "pending",
                 mfe=item.get("mfe_10d") or "pending", mae=item.get("mae_10d") or "pending", effect=item.get("effectiveness", "pending"),
@@ -315,6 +437,7 @@ def run_tracker() -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
     client = GitHubPublicArtifacts()
     snapshots = ingest_sector_snapshots(client, state)
     history = ingest_formal_pushes(client, state, copy.deepcopy(old_history))
+    history = ingest_long_formal_pushes(client, state, history)
     freeze_sector_context(history, snapshots, load_metadata(METADATA_CACHE))
     update_performance(history)
     _write_csv(HISTORY_CSV, history, HISTORY_FIELDS)
