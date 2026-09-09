@@ -1,11 +1,15 @@
 【美股信号验证器】
-历史正式推送总数：1
+历史正式推送总数：5
 已成熟10日信号数：0
 强势板块内信号数：0
 非强势板块信号数：1
 
-基准：推送 Artifact 记录的 signal_price；T+N 为后续第 N 个实际交易日收盘价。
+基准：实际推送时冻结的 push_price；T+N 为 push_date 后第 N 个实际交易日收盘价。
 有效性：10 个交易日内，先触及 +5% 为有效；先触及 -5% 为无效；同日双触及为无法判定。
 
 最近具体推送：
-TROW｜2026-09-08｜价 109.77999877929688｜其他（Asset Management & Custody Banks）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+TROW｜4h｜信号K 2026-09-08｜推送 2026-09-08｜价 109.77999877929688｜其他（Asset Management & Custody Banks）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+VST｜周线｜信号K 2026-09-04｜推送 2026-09-09｜价 151.72000122070312｜其他（Electric Utilities）｜排名 -｜强势 未知｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+META｜周线｜信号K 2026-09-04｜推送 2026-09-09｜价 613.47998046875｜大型科技｜排名 -｜强势 未知｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+PSKY｜月线｜信号K 2026-08-31｜推送 2026-09-09｜价 10.800000190734863｜其他（Movies & Entertainment）｜排名 -｜强势 未知｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+MOS｜月线｜信号K 2026-08-31｜推送 2026-09-09｜价 26.530000686645508｜其他（Fertilizers & Agricultural Chemicals）｜排名 -｜强势 未知｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
