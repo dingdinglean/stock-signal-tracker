@@ -75,8 +75,10 @@ jobs:
             git push
           fi
 
-      - name: Upload scorecard artifact
+      - name: Upload tracker report artifact
+        id: artifact_upload_first
         if: ${{ always() && inputs.test_email != true }}
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: stock-signal-tracker-report
@@ -84,3 +86,21 @@ jobs:
             output/tracker_report.csv
             output/tracker_report.txt
           if-no-files-found: warn
+
+      - name: Retry tracker report artifact upload
+        id: artifact_upload_retry
+        if: ${{ always() && inputs.test_email != true && steps.artifact_upload_first.outcome == 'failure' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          # V4 artifacts are immutable within a run.  A distinct retry name
+          # avoids a same-name conflict if the first network attempt partly created one.
+          name: stock-signal-tracker-report-retry
+          path: |
+            output/tracker_report.csv
+            output/tracker_report.txt
+          if-no-files-found: warn
+
+      - name: Warn when both artifact uploads fail
+        if: ${{ always() && inputs.test_email != true && steps.artifact_upload_first.outcome == 'failure' && steps.artifact_upload_retry.outcome == 'failure' }}
+        run: echo "::warning::Artifact upload failed after retry; tracker data and report were already committed to repository."
