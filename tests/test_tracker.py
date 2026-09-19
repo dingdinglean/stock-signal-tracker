@@ -7,7 +7,7 @@ import pytest
 
 import tracker
 from email_sender import EmailDeliveryError, send_email
-from notifications import build_body, changes_between
+from notifications import build_body, build_subject, changes_between, prepare_email_data, timeframe_label
 from performance import calculate_performance
 
 
@@ -239,7 +239,7 @@ def test_zero_history_writes_normal_report(tmp_path, monkeypatch):
 
 def _notification_row(signal_id="one", **updates):
     row = {field: "" for field in tracker.HISTORY_FIELDS}
-    row.update({"signal_id": signal_id, "symbol": "AMD", "signal_date": "2026-09-08", "signal_price": "100", "sector_theme": "半导体", "strong_sector": "是", "effectiveness": "pending"})
+    row.update({"signal_id": signal_id, "symbol": "AMD", "signal_date": "2026-09-08", "signal_price": "100", "source_timeframe": "daily", "daily_dxdx": "True", "sector_theme": "半导体", "strong_sector": "是", "effectiveness": "pending"})
     row.update(updates)
     return row
 
@@ -275,10 +275,10 @@ def test_multiple_changes_for_one_signal_render_once():
     old = _notification_row()
     new = _notification_row(return_1d="1.2", return_5d="3.8", effectiveness="有效")
     changes = changes_between([old], [new])
-    body = build_body(changes, [new])
+    body = build_body(prepare_email_data(changes, [new]))
     assert len(changes) == 1
-    assert body.count("AMD\n周期：日/4H") == 1
-    assert "T+1：+1.2%" in body and "T+5：+3.8%" in body and "有效性：有效" in body
+    assert body.count("<strong>AMD</strong>") == 1
+    assert "日线" in body and "T+1" in body and "+1.2%" in body and "T+5" in body and "+3.8%" in body
 
 
 def test_multiple_signal_changes_are_combined_into_one_body():
@@ -286,9 +286,132 @@ def test_multiple_signal_changes_are_combined_into_one_body():
     updated_first = _notification_row("one", return_1d="1.2")
     second = _notification_row("two", symbol="NVDA", return_1d="2")
     changes = changes_between([first], [updated_first, second])
-    body = build_body(changes, [updated_first, second])
+    data = prepare_email_data(changes, [updated_first, second])
+    body = build_body(data)
     assert len(changes) == 2
-    assert "AMD" in body and "NVDA" in body and "本次新增正式推送：1" in body
+    assert "AMD" in body and "NVDA" in body
+    assert build_subject(data) == "【美股信号】新增 1｜更新 1｜历史 2"
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("day", "日线"), ("daily", "日线"), ("1d", "日线"), ("daily+4h", "日线"),
+        ("week", "周线"), ("weekly", "周线"), ("1w", "周线"),
+        ("month", "月线"), ("monthly", "月线"), ("1mo", "月线"),
+        ("4h", None), ("4H", None), ("4hour", None), ("240m", None),
+    ],
+)
+def test_email_timeframe_aliases(value, expected):
+    assert timeframe_label({"source_timeframe": value, "daily_dxdx": True}) == expected
+
+
+def test_daily_blue_above_yellow_and_bottom_signal_enters_as_daily():
+    # Upstream daily_dxdx=True is produced only by BLUE_ABOVE_YELLOW AND DXDX.
+    row = {"source_timeframe": "daily", "BLUE_ABOVE_YELLOW": True, "DXDX": True, "daily_dxdx": True}
+    assert timeframe_label(row) == "日线"
+
+
+def test_daily_blue_not_above_yellow_with_bottom_signal_is_not_daily():
+    # The upstream combined result is false when BLUE_ABOVE_YELLOW is false.
+    row = {"source_timeframe": "daily", "BLUE_ABOVE_YELLOW": False, "DXDX": True, "daily_dxdx": False}
+    assert timeframe_label(row) is None
+
+
+def test_daily_blue_above_yellow_without_bottom_signal_is_not_daily():
+    # The upstream combined result is false when daily DXDX is absent.
+    row = {"source_timeframe": "daily", "BLUE_ABOVE_YELLOW": True, "DXDX": False, "daily_dxdx": False}
+    assert timeframe_label(row) is None
+
+
+def test_only_4h_blue_above_yellow_and_bottom_signal_is_not_daily():
+    row = {"source_timeframe": "4h", "daily_dxdx": False, "h4_dxdx": True, "blue_above_yellow": True}
+    assert timeframe_label(row) is None
+
+
+def test_daily_plus_4h_without_real_daily_signal_is_excluded():
+    row = {"source_timeframe": "daily+4h", "daily_dxdx": False, "h4_dxdx": True}
+    assert timeframe_label(row) is None
+
+
+def test_daily_plus_4h_with_real_daily_signal_enters_as_daily():
+    row = {"source_timeframe": "daily+4h", "daily_dxdx": True, "h4_dxdx": True}
+    assert timeframe_label(row) == "日线"
+
+
+def test_email_filters_4h_before_all_counts_and_tables():
+    daily = _notification_row("daily", symbol="F", source_timeframe="daily+4h", signal_date="2026-09-18", push_price="12.34", strong_sector="否")
+    weekly = _notification_row("weekly", symbol="ORCL", source_timeframe="weekly", signal_date="2026-09-14", push_price="185.32", strong_sector="否", return_3d="4.8")
+    monthly = _notification_row("monthly", symbol="XXX", source_timeframe="monthly", signal_date="2026-09-01", push_price="52.30", strong_sector="是")
+    four_hour_new = _notification_row("four-new", symbol="HNEW", source_timeframe="4H", daily_dxdx="False", h4_dxdx="True")
+    daily_update = _notification_row("day-update", symbol="DUP", source_timeframe="1d", return_1d="1.2", last_updated="2026-09-19T10:00:00+00:00")
+    four_hour_update = _notification_row("four-update", symbol="HUP", source_timeframe="240m", daily_dxdx="False", h4_dxdx="True", return_1d="9.9", last_updated="2026-09-19T11:00:00+00:00")
+    changes = [
+        *({"record": row, "new_signal": True, "milestones": [], "effectiveness": False} for row in (daily, weekly, monthly, four_hour_new)),
+        *({"record": row, "new_signal": False, "milestones": ["return_1d"], "effectiveness": False} for row in (daily_update, four_hour_update)),
+    ]
+    history = [daily, weekly, monthly, four_hour_new, daily_update, four_hour_update]
+
+    data = prepare_email_data(changes, history)
+    body = build_body(data)
+
+    assert (len(data.new_changes), len(data.update_changes), len(data.history)) == (3, 1, 4)
+    assert (data.strong_count, data.non_strong_count) == (2, 2)
+    assert build_subject(data) == "【美股信号】新增 3｜更新 1｜历史 4"
+    assert all(marker not in body for marker in ("HNEW", "HUP", "4H", "4h", "240m"))
+    assert all(symbol in body for symbol in ("F", "ORCL", "XXX", "DUP"))
+
+
+def test_email_formats_price_empty_values_dates_and_latest_performance():
+    row = _notification_row(
+        symbol="BF-B",
+        source_timeframe="daily",
+        signal_date="2026-09-10",
+        push_date="2026-09-11",
+        push_price="26.149999618530273",
+        sector_theme="",
+        sector_rank="",
+        strong_sector="",
+        return_1d="1.2",
+        return_3d="pending",
+    )
+    change = {"record": row, "new_signal": True, "milestones": [], "effectiveness": False}
+    body = build_body(prepare_email_data([change], [row]))
+    assert "$26.15" in body
+    assert "信号 09/10<br>推送 09/11" in body
+    assert "T+1 +1.2%" in body
+    assert "板块排名" not in body
+    assert "—" in body
+
+
+def test_email_tables_are_complete_and_sort_by_period_then_recency():
+    rows = [
+        _notification_row("month", symbol="MONTH", source_timeframe="month", signal_date="2026-09-19"),
+        _notification_row("day-old", symbol="DAYOLD", source_timeframe="day", signal_date="2026-09-10"),
+        _notification_row("week", symbol="WEEK", source_timeframe="week", signal_date="2026-09-18"),
+        _notification_row("day-new", symbol="DAYNEW", source_timeframe="1d", signal_date="2026-09-17"),
+    ]
+    changes = [{"record": row, "new_signal": True, "milestones": [], "effectiveness": False} for row in rows]
+    body = build_body(prepare_email_data(changes, rows))
+    assert body.lower().startswith("<!doctype html>")
+    assert body.count("<table ") == 3
+    assert body.count("<thead>") == body.count("</thead>") == 3
+    assert body.count("<tbody>") == body.count("</tbody>") == 3
+    assert body.count("<tr>") == body.count("</tr>")
+    assert body.index("DAYNEW") < body.index("DAYOLD") < body.index("WEEK") < body.index("MONTH")
+    assert "width:100%;max-width:100%;border-collapse:collapse" in body
+
+
+def test_performance_updates_sort_by_period_then_last_updated():
+    rows = [
+        _notification_row("week", symbol="WEEKUP", source_timeframe="weekly", last_updated="2026-09-19T12:00:00+00:00"),
+        _notification_row("day-old", symbol="DAYUPO", source_timeframe="daily", last_updated="2026-09-19T08:00:00+00:00"),
+        _notification_row("day-new", symbol="DAYUPN", source_timeframe="daily", last_updated="2026-09-19T10:00:00+00:00"),
+        _notification_row("month", symbol="MONTHUP", source_timeframe="monthly", last_updated="2026-09-19T13:00:00+00:00"),
+    ]
+    changes = [{"record": row, "new_signal": False, "milestones": ["return_1d"], "effectiveness": False} for row in rows]
+    body = build_body(prepare_email_data(changes, rows))
+    assert body.index("DAYUPN") < body.index("DAYUPO") < body.index("WEEKUP") < body.index("MONTHUP")
 
 
 def test_test_email_only_does_not_run_tracker(monkeypatch):
@@ -331,8 +454,9 @@ def test_gmail_587_uses_starttls(monkeypatch):
             events.append(("starttls",))
         def login(self, _user, _password):
             events.append(("login",))
-        def send_message(self, _message):
+        def send_message(self, message):
             events.append(("send",))
+            events.append(("message", message))
 
     for key, value in {"SMTP_HOST": "smtp.gmail.com", "SMTP_PORT": "587", "SMTP_USER": "sender@example.com", "SMTP_PASSWORD": "secret", "EMAIL_TO": "to@example.com"}.items():
         monkeypatch.setenv(key, value)
@@ -340,6 +464,10 @@ def test_gmail_587_uses_starttls(monkeypatch):
     send_email("subject", "body")
     assert ("connect", "smtp.gmail.com", 587, 30) in events
     assert ("starttls",) in events and ("login",) in events and ("send",) in events
+    message = next(event[1] for event in events if event[0] == "message")
+    assert message.get_content_type() == "multipart/alternative"
+    assert message.get_body(preferencelist=("html",)).get_content_type() == "text/html"
+    assert message.get_body(preferencelist=("html",)).get_content().strip() == "body"
 
 
 def test_no_change_main_succeeds_without_smtp(monkeypatch, tmp_path):
@@ -349,3 +477,16 @@ def test_no_change_main_succeeds_without_smtp(monkeypatch, tmp_path):
     monkeypatch.setattr(tracker, "run_tracker", lambda: ([], []))
     monkeypatch.setattr(tracker, "send_email", lambda *_args: (_ for _ in ()).throw(AssertionError("SMTP must not connect")))
     tracker.main([])
+
+
+def test_only_4h_changes_do_not_send_email(monkeypatch, tmp_path):
+    report = tmp_path / "tracker_report.txt"
+    report.write_text("normal report\n", encoding="utf-8")
+    row = _notification_row(source_timeframe="4hour", daily_dxdx="False", h4_dxdx="True")
+    change = {"record": row, "new_signal": True, "milestones": [], "effectiveness": False}
+    sent = []
+    monkeypatch.setattr(tracker, "REPORT_TXT", report)
+    monkeypatch.setattr(tracker, "run_tracker", lambda: ([row], [change]))
+    monkeypatch.setattr(tracker, "send_email", lambda *args: sent.append(args))
+    tracker.main([])
+    assert sent == []

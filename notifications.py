@@ -1,16 +1,78 @@
-"""Detect and render one-time, material tracker changes."""
+"""Detect, prepare, and render one-time tracker email notifications."""
 from __future__ import annotations
 
+import html
+import math
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 
 MILESTONE_FIELDS = ("return_1d", "return_3d", "return_5d", "return_10d", "return_20d")
 EFFECTIVE_VALUES = {"有效", "无效", "中性", "无法判定"}
 PENDING_VALUES = {"", "pending", "待观察", "none", "null"}
+TIMEFRAME_ORDER = {"日线": 0, "周线": 1, "月线": 2}
+TIMEFRAME_ALIASES = {
+    "day": "日线",
+    "daily": "日线",
+    "1d": "日线",
+    "d": "日线",
+    "日": "日线",
+    "日线": "日线",
+    "week": "周线",
+    "weekly": "周线",
+    "1w": "周线",
+    "w": "周线",
+    "周": "周线",
+    "周线": "周线",
+    "month": "月线",
+    "monthly": "月线",
+    "1mo": "月线",
+    "1mth": "月线",
+    "月": "月线",
+    "月线": "月线",
+}
+FOUR_HOUR_ALIASES = {
+    "4h", "4hr", "4hrs", "4hour", "4hours", "240m", "240min", "240mins",
+    "240minute", "240minutes", "4小时", "四小时",
+}
+
+
+@dataclass(frozen=True)
+class EmailData:
+    """The single filtered source used by the subject, summary, and tables."""
+
+    new_changes: tuple[dict[str, Any], ...]
+    update_changes: tuple[dict[str, Any], ...]
+    history: tuple[dict[str, str], ...]
+    strong_count: int
+    non_strong_count: int
+
+    @property
+    def has_changes(self) -> bool:
+        return bool(self.new_changes or self.update_changes)
 
 
 def _pending(value: Any) -> bool:
     return str(value or "").strip().lower() in PENDING_VALUES
+
+
+def _true(value: Any) -> bool:
+    """Parse booleans as stored by current and legacy signal artifacts."""
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().lower() in {"true", "1", "yes", "y", "是"}
+
+
+def _daily_signal_confirmed(row: dict[str, Any]) -> bool:
+    """Use the upstream final daily signal, never a timeframe-name shortcut.
+
+    In the source radar, daily_dxdx is assigned only when both the existing
+    BLUE_ABOVE_YELLOW trend check and the existing daily DXDX bottom signal
+    are true.  This verifier reuses that persisted result and does not
+    recalculate or alter either indicator.
+    """
+    return _true(row.get("daily_dxdx"))
 
 
 def changes_between(old_rows: list[dict[str, str]], new_rows: list[dict[str, str]]) -> list[dict[str, Any]]:
@@ -30,13 +92,77 @@ def changes_between(old_rows: list[dict[str, str]], new_rows: list[dict[str, str
     return changes
 
 
+def timeframe_label(row: dict[str, Any]) -> str | None:
+    """Map an email-eligible row to its Chinese period label.
+
+    Unknown values and pure four-hour aliases are deliberately excluded. A
+    legacy empty source_timeframe may fall back to source_signal_level.
+    """
+    raw = str(row.get("source_timeframe") or "").strip().lower().replace(" ", "")
+    if raw in FOUR_HOUR_ALIASES:
+        return None
+    if raw == "daily+4h":
+        return "日线" if _daily_signal_confirmed(row) else None
+    if raw in TIMEFRAME_ALIASES:
+        label = TIMEFRAME_ALIASES[raw]
+        return label if label != "日线" or _daily_signal_confirmed(row) else None
+    if raw:
+        return None
+
+    legacy = str(row.get("source_signal_level") or "").strip().lower().replace(" ", "")
+    if legacy in FOUR_HOUR_ALIASES or legacy == "a":
+        return None
+    if legacy in TIMEFRAME_ALIASES:
+        label = TIMEFRAME_ALIASES[legacy]
+        return label if label != "日线" or _daily_signal_confirmed(row) else None
+    if legacy in {"b", "s"}:
+        return "日线" if _daily_signal_confirmed(row) else None
+    return None
+
+
+def _signal_sort_value(change: dict[str, Any]) -> tuple[str, str]:
+    row = change["record"]
+    return str(row.get("signal_date") or ""), str(row.get("signal_time") or "")
+
+
+def _update_sort_value(change: dict[str, Any]) -> tuple[str, str, str]:
+    row = change["record"]
+    return (
+        str(row.get("last_updated") or ""),
+        str(row.get("signal_date") or ""),
+        str(row.get("signal_time") or ""),
+    )
+
+
+def _sort_changes(changes: list[dict[str, Any]], *, updates: bool) -> tuple[dict[str, Any], ...]:
+    by_recency = sorted(changes, key=_update_sort_value if updates else _signal_sort_value, reverse=True)
+    return tuple(sorted(by_recency, key=lambda item: TIMEFRAME_ORDER[timeframe_label(item["record"]) or "日线"]))
+
+
+def prepare_email_data(changes: list[dict[str, Any]], history: list[dict[str, str]]) -> EmailData:
+    """Filter 4H/unknown rows once, then recompute every email statistic."""
+    filtered_history = tuple(row for row in history if timeframe_label(row) is not None)
+    filtered_changes = [item for item in changes if timeframe_label(item["record"]) is not None]
+    new_changes = [item for item in filtered_changes if bool(item.get("new_signal"))]
+    update_changes = [item for item in filtered_changes if not bool(item.get("new_signal"))]
+    return EmailData(
+        new_changes=_sort_changes(new_changes, updates=False),
+        update_changes=_sort_changes(update_changes, updates=True),
+        history=filtered_history,
+        strong_count=sum(row.get("strong_sector") == "是" for row in filtered_history),
+        non_strong_count=sum(row.get("strong_sector") == "否" for row in filtered_history),
+    )
+
+
 def _pct(value: Any) -> str:
-    if value in (None, ""):
-        return "pending"
+    if _pending(value):
+        return "—"
     try:
         number = float(value)
     except (TypeError, ValueError):
-        return str(value)
+        return html.escape(str(value))
+    if not math.isfinite(number):
+        return "—"
     return f"{number:+.1f}%"
 
 
@@ -44,40 +170,157 @@ def _label(field: str) -> str:
     return {"return_1d": "T+1", "return_3d": "T+3", "return_5d": "T+5", "return_10d": "T+10", "return_20d": "T+20"}[field]
 
 
-def build_subject(changes: list[dict[str, Any]]) -> str:
-    new_count = sum(bool(item["new_signal"]) for item in changes)
-    update_count = len(changes) - new_count
-    if new_count and update_count:
-        return f"【美股信号验证器】新增 {new_count} 条｜更新 {update_count} 条"
-    if new_count:
-        symbols = " ".join(str(item["record"].get("symbol", "")) for item in changes[:3]).strip()
-        return f"【美股信号验证器】新增 {symbols}｜正式推送 {new_count}"
-    return f"【美股信号验证器】{update_count} 条信号有新结果"
+def _price(value: Any) -> str:
+    if value in (None, ""):
+        return "—"
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return "—"
+    if not math.isfinite(number):
+        return "—"
+    return f"${number:.2f}"
 
 
-def build_body(changes: list[dict[str, Any]], history: list[dict[str, str]]) -> str:
-    new_count = sum(bool(item["new_signal"]) for item in changes)
-    update_count = len(changes) - new_count
-    strong = sum(row.get("strong_sector") == "是" for row in history)
-    non_strong = sum(row.get("strong_sector") == "否" for row in history)
-    lines = [
-        "【美股信号验证器】", "", f"本次新增正式推送：{new_count}", f"本次绩效更新：{update_count}",
-        f"当前正式历史：{len(history)}", f"强势板块内：{strong}", f"非强势板块：{non_strong}", "",
-    ]
-    for change in changes:
+def _date(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "—"
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).strftime("%m/%d")
+    except ValueError:
+        try:
+            return datetime.strptime(text[:10], "%Y-%m-%d").strftime("%m/%d")
+        except ValueError:
+            return html.escape(text)
+
+
+def _date_cell(row: dict[str, Any]) -> str:
+    signal_raw = str(row.get("signal_date") or "").strip()
+    push_raw = str(row.get("push_date") or signal_raw).strip()
+    signal = _date(signal_raw)
+    push = _date(push_raw)
+    if not push_raw or push_raw[:10] == signal_raw[:10]:
+        return signal
+    return f"信号 {signal}<br>推送 {push}"
+
+
+def _latest_performance(row: dict[str, Any]) -> str:
+    for field in reversed(MILESTONE_FIELDS):
+        if not _pending(row.get(field)):
+            return f"{_label(field)} {_pct(row.get(field))}"
+    return "—"
+
+
+def _strong(value: Any) -> str:
+    text = str(value or "").strip()
+    return text if text in {"是", "否"} else "—"
+
+
+CELL = "border:1px solid #d9dde3;padding:7px 6px;text-align:left;vertical-align:top;font-size:13px;line-height:1.35;"
+HEAD = CELL + "background:#f1f4f8;font-weight:600;white-space:nowrap;"
+NOWRAP = CELL + "white-space:nowrap;"
+WRAP = CELL + "overflow-wrap:anywhere;word-break:break-word;"
+TABLE = "width:100%;max-width:100%;border-collapse:collapse;border-spacing:0;"
+
+
+def _td(value: Any, style: str = CELL) -> str:
+    return f'<td style="{style}">{value}</td>'
+
+
+def _th(value: str) -> str:
+    return f'<th scope="col" style="{HEAD}">{html.escape(value)}</th>'
+
+
+def _summary_table(data: EmailData) -> str:
+    headers = ("本次新增", "绩效更新", "正式历史", "强势板块", "非强势板块")
+    values = (len(data.new_changes), len(data.update_changes), len(data.history), data.strong_count, data.non_strong_count)
+    return (
+        f'<table style="{TABLE}" aria-label="邮件汇总"><thead><tr>'
+        + "".join(_th(item) for item in headers)
+        + "</tr></thead><tbody><tr>"
+        + "".join(_td(value, NOWRAP + "text-align:center;font-weight:600;") for value in values)
+        + "</tr></tbody></table>"
+    )
+
+
+def _new_table(data: EmailData) -> str:
+    headers = ("代码", "周期", "信号日", "推送价", "板块", "强势", "最新绩效")
+    rows: list[str] = []
+    for change in data.new_changes:
         row = change["record"]
-        timeframe = {"weekly": "周线", "monthly": "月线"}.get(str(row.get("source_timeframe", "")), row.get("source_timeframe") or "日/4H")
-        lines.extend([
-            str(row.get("symbol", "")), f"周期：{timeframe}", f"信号K：{row.get('signal_date', '')}", f"推送日：{row.get('push_date') or row.get('signal_date', '')}", f"推送价：{row.get('push_price') or row.get('signal_price', '')}",
-            f"板块：{row.get('sector_theme') or '未知'}", f"板块排名：{row.get('sector_rank') or '-'}", f"强势板块：{row.get('strong_sector') or '未知'}", "",
-            "本次新增：",
-        ])
-        if change["new_signal"]:
-            lines.append("正式推送已入库")
-        for field in change["milestones"]:
-            if not _pending(row.get(field)):
-                lines.append(f"{_label(field)}：{_pct(row.get(field))}")
-        if change["effectiveness"]:
-            lines.append(f"有效性：{row.get('effectiveness')}")
-        lines.extend(["", "---", ""])
-    return "\n".join(lines).rstrip() + "\n"
+        symbol = html.escape(str(row.get("symbol") or "—"))
+        sector = html.escape(str(row.get("sector_theme") or "—"))
+        cells = (
+            _td(f"<strong>{symbol}</strong>", NOWRAP),
+            _td(timeframe_label(row) or "—", NOWRAP),
+            _td(_date_cell(row), NOWRAP),
+            _td(_price(row.get("push_price") or row.get("signal_price")), NOWRAP),
+            _td(sector, WRAP),
+            _td(_strong(row.get("strong_sector")), NOWRAP),
+            _td(_latest_performance(row), NOWRAP),
+        )
+        rows.append("<tr>" + "".join(cells) + "</tr>")
+    if not rows:
+        rows.append(f'<tr><td colspan="{len(headers)}" style="{CELL}text-align:center;color:#666;">—</td></tr>')
+    return (
+        f'<table style="{TABLE}" aria-label="本次新增"><thead><tr>'
+        + "".join(_th(item) for item in headers)
+        + "</tr></thead><tbody>"
+        + "".join(rows)
+        + "</tbody></table>"
+    )
+
+
+def _update_table(data: EmailData) -> str:
+    fields = MILESTONE_FIELDS
+    headers = ("代码", "周期", "信号日", "推送价", *(_label(field) for field in fields))
+    rows: list[str] = []
+    for change in data.update_changes:
+        row = change["record"]
+        symbol = html.escape(str(row.get("symbol") or "—"))
+        cells = [
+            _td(f"<strong>{symbol}</strong>", NOWRAP),
+            _td(timeframe_label(row) or "—", NOWRAP),
+            _td(_date_cell(row), NOWRAP),
+            _td(_price(row.get("push_price") or row.get("signal_price")), NOWRAP),
+        ]
+        cells.extend(_td(_pct(row.get(field)), NOWRAP) for field in fields)
+        rows.append("<tr>" + "".join(cells) + "</tr>")
+    if not rows:
+        rows.append(f'<tr><td colspan="{len(headers)}" style="{CELL}text-align:center;color:#666;">—</td></tr>')
+    return (
+        f'<table style="{TABLE}" aria-label="历史绩效更新"><thead><tr>'
+        + "".join(_th(item) for item in headers)
+        + "</tr></thead><tbody>"
+        + "".join(rows)
+        + "</tbody></table>"
+    )
+
+
+def build_subject(data: EmailData) -> str:
+    return f"【美股信号】新增 {len(data.new_changes)}｜更新 {len(data.update_changes)}｜历史 {len(data.history)}"
+
+
+def build_body(data: EmailData) -> str:
+    """Build a complete, mobile-friendly HTML email document."""
+    title = html.escape(build_subject(data))
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+</head>
+<body style="margin:0;padding:12px;background:#ffffff;color:#202124;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:1.45;">
+  <div style="width:100%;max-width:100%;margin:0 auto;">
+    <h1 style="margin:0 0 12px;font-size:19px;line-height:1.35;">{title}</h1>
+    {_summary_table(data)}
+    <h2 style="margin:20px 0 8px;font-size:17px;line-height:1.35;">本次新增</h2>
+    <div style="width:100%;max-width:100%;overflow-x:auto;">{_new_table(data)}</div>
+    <h2 style="margin:20px 0 8px;font-size:17px;line-height:1.35;">历史绩效更新</h2>
+    <div style="width:100%;max-width:100%;overflow-x:auto;">{_update_table(data)}</div>
+  </div>
+</body>
+</html>
+"""

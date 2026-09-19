@@ -26,14 +26,15 @@ def _config() -> tuple[str, int, str, str, str]:
     return host, port, username, password, recipient
 
 
-def send_email(subject: str, body: str) -> None:
-    """Send once through STARTTLS on 587; never log configuration or secrets."""
+def send_email(subject: str, html_body: str) -> None:
+    """Send an HTML email with a small plain-text fallback."""
     host, port, username, password, recipient = _config()
     message = EmailMessage()
     message["Subject"] = subject
     message["From"] = username
     message["To"] = recipient
-    message.set_content(body)
+    message.set_content(f"{subject}\n\n此邮件为 HTML 格式，请使用支持 HTML 的邮件客户端查看。")
+    message.add_alternative(html_body, subtype="html")
     try:
         with smtplib.SMTP(host, port, timeout=30) as client:
             client.ehlo()
@@ -47,4 +48,7 @@ def send_email(subject: str, body: str) -> None:
 
 
 def send_connectivity_test() -> None:
-    send_email("【美股信号验证器】邮件连通性测试", "美股信号验证器邮件发送正常。")
+    send_email(
+        "【美股信号验证器】邮件连通性测试",
+        '<!doctype html><html lang="zh-CN"><body><p>美股信号验证器邮件发送正常。</p></body></html>',
+    )

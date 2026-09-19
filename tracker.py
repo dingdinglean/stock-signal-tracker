@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 
 from github_artifacts import GitHubArtifactError, GitHubPublicArtifacts, find_member, parse_github_time
 from email_sender import send_connectivity_test, send_email
-from notifications import build_body, build_subject, changes_between
+from notifications import build_body, build_subject, changes_between, prepare_email_data
 from performance import calculate_performance, fetch_history, freeze_rth_push_price
 from sector_map import load_metadata, metadata_for
 
@@ -455,10 +455,11 @@ def main(argv: list[str] | None = None) -> None:
         print("Tracker email connectivity test sent.")
         return
     history, changes = run_tracker()
-    if changes:
+    email_data = prepare_email_data(changes, history)
+    if email_data.has_changes:
         # Delivery failure is intentional: the workflow must fail so this
         # one-time material change is not silently treated as notified.
-        send_email(build_subject(changes), build_body(changes, history))
+        send_email(build_subject(email_data), build_body(email_data))
     print(REPORT_TXT.read_text(encoding="utf-8"))
 
 
