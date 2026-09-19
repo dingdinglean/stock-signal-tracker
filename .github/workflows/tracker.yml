@@ -8,6 +8,11 @@ on:
         required: false
         type: boolean
         default: false
+      preview_email:
+        description: "Send the committed HTML email style preview only"
+        required: false
+        type: boolean
+        default: false
   schedule:
     # Runs after both source radars: strength at 22:00 UTC, DXDX at 22:30 UTC.
     - cron: "30 23 * * 1-5"
@@ -45,8 +50,18 @@ jobs:
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: python tracker.py --test-email
 
+      - name: Send tracker HTML style preview
+        if: ${{ inputs.preview_email == true }}
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python tracker.py --preview-email
+
       - name: Update formal signal history
-        if: ${{ inputs.test_email != true }}
+        if: ${{ inputs.test_email != true && inputs.preview_email != true }}
         env:
           # Optional. The client automatically retries public cross-repo reads anonymously
           # if this repository-scoped token is rejected by a source repository.
@@ -59,11 +74,11 @@ jobs:
         run: python tracker.py
 
       - name: Show tracker report
-        if: ${{ always() && inputs.test_email != true }}
+        if: ${{ always() && inputs.test_email != true && inputs.preview_email != true }}
         run: cat output/tracker_report.txt || true
 
       - name: Commit tracker history
-        if: ${{ inputs.test_email != true }}
+        if: ${{ inputs.test_email != true && inputs.preview_email != true }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -77,7 +92,7 @@ jobs:
 
       - name: Upload tracker report artifact
         id: artifact_upload_first
-        if: ${{ always() && inputs.test_email != true }}
+        if: ${{ always() && inputs.test_email != true && inputs.preview_email != true }}
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -89,7 +104,7 @@ jobs:
 
       - name: Retry tracker report artifact upload
         id: artifact_upload_retry
-        if: ${{ always() && inputs.test_email != true && steps.artifact_upload_first.outcome == 'failure' }}
+        if: ${{ always() && inputs.test_email != true && inputs.preview_email != true && steps.artifact_upload_first.outcome == 'failure' }}
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -102,5 +117,5 @@ jobs:
           if-no-files-found: warn
 
       - name: Warn when both artifact uploads fail
-        if: ${{ always() && inputs.test_email != true && steps.artifact_upload_first.outcome == 'failure' && steps.artifact_upload_retry.outcome == 'failure' }}
+        if: ${{ always() && inputs.test_email != true && inputs.preview_email != true && steps.artifact_upload_first.outcome == 'failure' && steps.artifact_upload_retry.outcome == 'failure' }}
         run: echo "::warning::Artifact upload failed after retry; tracker data and report were already committed to repository."

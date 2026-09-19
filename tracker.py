@@ -42,6 +42,8 @@ STATE_JSON = DATA_DIR / "state.json"
 METADATA_CACHE = DATA_DIR / "sector_metadata_cache.json"
 REPORT_CSV = OUTPUT_DIR / "tracker_report.csv"
 REPORT_TXT = OUTPUT_DIR / "tracker_report.txt"
+PREVIEW_EMAIL_HTML = OUTPUT_DIR / "test_email_preview.html"
+PREVIEW_EMAIL_SUBJECT = "【TEST】美股信号 HTML 样式预览"
 
 HISTORY_FIELDS = [
     "signal_id", "symbol", "signal_date", "signal_time", "signal_price", "push_date", "push_price", "source_run_id", "source_radar", "source_timeframe", "source_signal_level",
@@ -448,11 +450,17 @@ def run_tracker() -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Update the independent signal verifier")
-    parser.add_argument("--test-email", action="store_true", help="send SMTP connectivity test only")
+    email_mode = parser.add_mutually_exclusive_group()
+    email_mode.add_argument("--test-email", action="store_true", help="send SMTP connectivity test only")
+    email_mode.add_argument("--preview-email", action="store_true", help="send the committed HTML UI preview only")
     args = parser.parse_args(argv)
     if args.test_email:
         send_connectivity_test()
         print("Tracker email connectivity test sent.")
+        return
+    if args.preview_email:
+        send_email(PREVIEW_EMAIL_SUBJECT, PREVIEW_EMAIL_HTML.read_text(encoding="utf-8"))
+        print("Tracker HTML preview email sent.")
         return
     history, changes = run_tracker()
     email_data = prepare_email_data(changes, history)

@@ -422,6 +422,20 @@ def test_test_email_only_does_not_run_tracker(monkeypatch):
     assert sent == [True]
 
 
+def test_preview_email_only_sends_committed_html_without_running_tracker(monkeypatch, tmp_path):
+    preview = tmp_path / "test_email_preview.html"
+    preview.write_text("<!doctype html><html><body>TEST preview</body></html>", encoding="utf-8")
+    sent = []
+    monkeypatch.setattr(tracker, "PREVIEW_EMAIL_HTML", preview)
+    monkeypatch.setattr(tracker, "send_email", lambda *args: sent.append(args))
+    monkeypatch.setattr(tracker, "send_connectivity_test", lambda: (_ for _ in ()).throw(AssertionError("connectivity test must not run")))
+    monkeypatch.setattr(tracker, "run_tracker", lambda: (_ for _ in ()).throw(AssertionError("tracker must not run")))
+
+    tracker.main(["--preview-email"])
+
+    assert sent == [("【TEST】美股信号 HTML 样式预览", preview.read_text(encoding="utf-8"))]
+
+
 def test_smtp_failure_is_raised(monkeypatch):
     import email_sender
 
