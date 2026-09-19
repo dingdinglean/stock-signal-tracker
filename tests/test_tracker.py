@@ -420,6 +420,26 @@ def test_performance_updates_sort_by_period_then_last_updated():
     assert body.index("DAYUPN") < body.index("DAYUPO") < body.index("WEEKUP") < body.index("MONTHUP")
 
 
+def test_performance_update_table_combines_period_with_symbol_and_compacts_dates():
+    rows = [
+        _notification_row("same", symbol="SAME", source_timeframe="daily", signal_date="2026-09-18", push_date="2026-09-18"),
+        _notification_row("same-month", symbol="SMON", source_timeframe="weekly", signal_date="2026-09-16", push_date="2026-09-18"),
+        _notification_row("cross-month", symbol="CMON", source_timeframe="monthly", signal_date="2026-08-31", push_date="2026-09-02"),
+        _notification_row("cross-year", symbol="CYEAR", source_timeframe="daily", signal_date="2026-12-31", push_date="2027-01-02"),
+    ]
+    changes = [{"record": row, "new_signal": False, "milestones": ["return_1d"], "effectiveness": False} for row in rows]
+    body = build_body(prepare_email_data(changes, rows))
+    history_table = body.split('aria-label="历史绩效更新"', 1)[1]
+
+    assert "09/18" in history_table
+    assert "09/16→18" in history_table
+    assert "08/31→09/02" in history_table
+    assert "26/12/31→27/01/02" in history_table
+    assert "<strong>SMON</strong><br><span" in history_table and ">周线</span>" in history_table
+    assert ">周期</th>" not in history_table
+    assert all(label in history_table for label in ("T+1", "T+3", "T+5", "T+10", "T+20"))
+
+
 def test_test_email_only_does_not_run_tracker(monkeypatch):
     sent = []
     monkeypatch.setattr(tracker, "send_connectivity_test", lambda: sent.append(True))

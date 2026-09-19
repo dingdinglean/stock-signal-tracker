@@ -205,6 +205,24 @@ def _date_cell(row: dict[str, Any]) -> str:
     return f"{signal}→{push}"
 
 
+def _update_date_cell(row: dict[str, Any]) -> str:
+    """Compact signal/push dates specifically for the history update table."""
+    signal_raw = str(row.get("signal_date") or "").strip()
+    push_raw = str(row.get("push_date") or signal_raw).strip()
+    try:
+        signal = datetime.fromisoformat(signal_raw.replace("Z", "+00:00")).date()
+        push = datetime.fromisoformat(push_raw.replace("Z", "+00:00")).date()
+    except ValueError:
+        return _date_cell(row)
+    if signal == push:
+        return signal.strftime("%m/%d")
+    if signal.year == push.year and signal.month == push.month:
+        return f'{signal.strftime("%m/%d")}→{push.strftime("%d")}'
+    if signal.year == push.year:
+        return f'{signal.strftime("%m/%d")}→{push.strftime("%m/%d")}'
+    return f'{signal.strftime("%y/%m/%d")}→{push.strftime("%y/%m/%d")}'
+
+
 def _latest_performance(row: dict[str, Any]) -> str:
     for field in reversed(MILESTONE_FIELDS):
         if not _pending(row.get(field)):
@@ -224,10 +242,11 @@ NEW_CELL = "border:1px solid #d9dde3;padding:5px 4px;text-align:left;vertical-al
 NEW_HEAD = NEW_CELL + "background:#f5f7f9;font-weight:600;white-space:nowrap;"
 NEW_NOWRAP = NEW_CELL + "white-space:nowrap;"
 SECTOR_CELL = NEW_CELL + "white-space:normal;word-break:normal;overflow-wrap:break-word;hyphens:none;"
-UPDATE_CELL = "border:1px solid #d9dde3;padding:5px 4px;text-align:left;vertical-align:middle;font-size:13px;line-height:1.25;"
-UPDATE_HEAD = UPDATE_CELL + "background:#f5f7f9;font-weight:600;white-space:nowrap;"
+UPDATE_CELL = "border:1px solid #d9dde3;padding:5px 5px;text-align:left;vertical-align:middle;font-size:14px;line-height:1.25;"
+UPDATE_HEAD = UPDATE_CELL + "background:#f5f7f9;font-size:13px;font-weight:600;white-space:nowrap;"
 UPDATE_NOWRAP = UPDATE_CELL + "white-space:nowrap;"
 MILESTONE_CELL = UPDATE_CELL + "padding-left:3px;padding-right:3px;white-space:nowrap;"
+UPDATE_TIMEFRAME = "font-size:12px;line-height:1.15;color:#5f6368;font-weight:400;white-space:nowrap;"
 SUMMARY_HEAD = "border:1px solid #e3e6ea;padding:4px 3px;text-align:center;vertical-align:middle;font-size:12px;line-height:1.25;background:#fafbfc;font-weight:500;"
 SUMMARY_VALUE = "border:1px solid #e3e6ea;padding:4px 3px;text-align:center;vertical-align:middle;font-size:13px;line-height:1.2;font-weight:700;white-space:nowrap;"
 TABLE = "width:100%;max-width:100%;border-collapse:collapse;border-spacing:0;"
@@ -289,15 +308,15 @@ def _new_table(data: EmailData) -> str:
 
 def _update_table(data: EmailData) -> str:
     fields = MILESTONE_FIELDS
-    headers = ("代码", "周期", "信号日", "推送价", *(_label(field) for field in fields))
+    headers = ("代码", "信号日", "推送价", *(_label(field) for field in fields))
     rows: list[str] = []
     for change in data.update_changes:
         row = change["record"]
         symbol = html.escape(str(row.get("symbol") or "—"))
+        timeframe = timeframe_label(row) or "—"
         cells = [
-            _td(f"<strong>{symbol}</strong>", UPDATE_NOWRAP),
-            _td(timeframe_label(row) or "—", UPDATE_NOWRAP),
-            _td(_date_cell(row), UPDATE_NOWRAP),
+            _td(f'<strong>{symbol}</strong><br><span style="{UPDATE_TIMEFRAME}">{timeframe}</span>', UPDATE_NOWRAP),
+            _td(_update_date_cell(row), UPDATE_NOWRAP),
             _td(_price(row.get("push_price") or row.get("signal_price")), UPDATE_NOWRAP),
         ]
         cells.extend(_td(_pct(row.get(field)), MILESTONE_CELL) for field in fields)
