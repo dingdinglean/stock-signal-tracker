@@ -378,7 +378,8 @@ def test_email_formats_price_empty_values_dates_and_latest_performance():
     change = {"record": row, "new_signal": True, "milestones": [], "effectiveness": False}
     body = build_body(prepare_email_data([change], [row]))
     assert "$26.15" in body
-    assert "信号 09/10<br>推送 09/11" in body
+    assert "09/10→09/11" in body
+    assert "信号 09/10" not in body and "推送 09/11" not in body
     assert "T+1 +1.2%" in body
     assert "板块排名" not in body
     assert "—" in body
@@ -400,6 +401,11 @@ def test_email_tables_are_complete_and_sort_by_period_then_recency():
     assert body.count("<tr>") == body.count("</tr>")
     assert body.index("DAYNEW") < body.index("DAYOLD") < body.index("WEEK") < body.index("MONTH")
     assert "width:100%;max-width:100%;border-collapse:collapse" in body
+    assert "overflow-wrap:anywhere" not in body
+    assert "word-break:normal;overflow-wrap:break-word" in body
+    assert '<col style="width:28%;">' in body
+    assert "min-width:600px" in body
+    assert all(label in body for label in ("T+1", "T+3", "T+5", "T+10", "T+20"))
 
 
 def test_performance_updates_sort_by_period_then_last_updated():

@@ -202,7 +202,7 @@ def _date_cell(row: dict[str, Any]) -> str:
     push = _date(push_raw)
     if not push_raw or push_raw[:10] == signal_raw[:10]:
         return signal
-    return f"信号 {signal}<br>推送 {push}"
+    return f"{signal}→{push}"
 
 
 def _latest_performance(row: dict[str, Any]) -> str:
@@ -217,29 +217,41 @@ def _strong(value: Any) -> str:
     return text if text in {"是", "否"} else "—"
 
 
-CELL = "border:1px solid #d9dde3;padding:7px 6px;text-align:left;vertical-align:top;font-size:13px;line-height:1.35;"
-HEAD = CELL + "background:#f1f4f8;font-weight:600;white-space:nowrap;"
+CELL = "border:1px solid #d9dde3;padding:6px 4px;text-align:left;vertical-align:middle;font-size:13px;line-height:1.3;"
+HEAD = CELL + "background:#f5f7f9;font-weight:600;white-space:nowrap;"
 NOWRAP = CELL + "white-space:nowrap;"
-WRAP = CELL + "overflow-wrap:anywhere;word-break:break-word;"
+NEW_CELL = "border:1px solid #d9dde3;padding:5px 4px;text-align:left;vertical-align:middle;font-size:12.5px;line-height:1.3;"
+NEW_HEAD = NEW_CELL + "background:#f5f7f9;font-weight:600;white-space:nowrap;"
+NEW_NOWRAP = NEW_CELL + "white-space:nowrap;"
+SECTOR_CELL = NEW_CELL + "white-space:normal;word-break:normal;overflow-wrap:break-word;hyphens:none;"
+UPDATE_CELL = "border:1px solid #d9dde3;padding:5px 4px;text-align:left;vertical-align:middle;font-size:13px;line-height:1.25;"
+UPDATE_HEAD = UPDATE_CELL + "background:#f5f7f9;font-weight:600;white-space:nowrap;"
+UPDATE_NOWRAP = UPDATE_CELL + "white-space:nowrap;"
+MILESTONE_CELL = UPDATE_CELL + "padding-left:3px;padding-right:3px;white-space:nowrap;"
+SUMMARY_HEAD = "border:1px solid #e3e6ea;padding:4px 3px;text-align:center;vertical-align:middle;font-size:12px;line-height:1.25;background:#fafbfc;font-weight:500;"
+SUMMARY_VALUE = "border:1px solid #e3e6ea;padding:4px 3px;text-align:center;vertical-align:middle;font-size:13px;line-height:1.2;font-weight:700;white-space:nowrap;"
 TABLE = "width:100%;max-width:100%;border-collapse:collapse;border-spacing:0;"
+NEW_TABLE = TABLE + "table-layout:fixed;"
+UPDATE_TABLE = TABLE + "min-width:600px;"
+SUMMARY_TABLE = TABLE + "table-layout:fixed;"
 
 
 def _td(value: Any, style: str = CELL) -> str:
     return f'<td style="{style}">{value}</td>'
 
 
-def _th(value: str) -> str:
-    return f'<th scope="col" style="{HEAD}">{html.escape(value)}</th>'
+def _th(value: str, style: str = HEAD) -> str:
+    return f'<th scope="col" style="{style}">{html.escape(value)}</th>'
 
 
 def _summary_table(data: EmailData) -> str:
     headers = ("本次新增", "绩效更新", "正式历史", "强势板块", "非强势板块")
     values = (len(data.new_changes), len(data.update_changes), len(data.history), data.strong_count, data.non_strong_count)
     return (
-        f'<table style="{TABLE}" aria-label="邮件汇总"><thead><tr>'
-        + "".join(_th(item) for item in headers)
+        f'<table style="{SUMMARY_TABLE}" aria-label="邮件汇总"><thead><tr>'
+        + "".join(_th(item, SUMMARY_HEAD) for item in headers)
         + "</tr></thead><tbody><tr>"
-        + "".join(_td(value, NOWRAP + "text-align:center;font-weight:600;") for value in values)
+        + "".join(_td(value, SUMMARY_VALUE) for value in values)
         + "</tr></tbody></table>"
     )
 
@@ -252,20 +264,23 @@ def _new_table(data: EmailData) -> str:
         symbol = html.escape(str(row.get("symbol") or "—"))
         sector = html.escape(str(row.get("sector_theme") or "—"))
         cells = (
-            _td(f"<strong>{symbol}</strong>", NOWRAP),
-            _td(timeframe_label(row) or "—", NOWRAP),
-            _td(_date_cell(row), NOWRAP),
-            _td(_price(row.get("push_price") or row.get("signal_price")), NOWRAP),
-            _td(sector, WRAP),
-            _td(_strong(row.get("strong_sector")), NOWRAP),
-            _td(_latest_performance(row), NOWRAP),
+            _td(f"<strong>{symbol}</strong>", NEW_NOWRAP),
+            _td(timeframe_label(row) or "—", NEW_NOWRAP),
+            _td(_date_cell(row), NEW_NOWRAP),
+            _td(_price(row.get("push_price") or row.get("signal_price")), NEW_NOWRAP),
+            _td(sector, SECTOR_CELL),
+            _td(_strong(row.get("strong_sector")), NEW_NOWRAP),
+            _td(_latest_performance(row), NEW_NOWRAP),
         )
         rows.append("<tr>" + "".join(cells) + "</tr>")
     if not rows:
         rows.append(f'<tr><td colspan="{len(headers)}" style="{CELL}text-align:center;color:#666;">—</td></tr>')
     return (
-        f'<table style="{TABLE}" aria-label="本次新增"><thead><tr>'
-        + "".join(_th(item) for item in headers)
+        f'<table style="{NEW_TABLE}" aria-label="本次新增">'
+        '<colgroup><col style="width:10%;"><col style="width:9%;"><col style="width:13%;">'
+        '<col style="width:14%;"><col style="width:28%;"><col style="width:8%;"><col style="width:18%;"></colgroup>'
+        "<thead><tr>"
+        + "".join(_th(item, NEW_HEAD) for item in headers)
         + "</tr></thead><tbody>"
         + "".join(rows)
         + "</tbody></table>"
@@ -280,18 +295,18 @@ def _update_table(data: EmailData) -> str:
         row = change["record"]
         symbol = html.escape(str(row.get("symbol") or "—"))
         cells = [
-            _td(f"<strong>{symbol}</strong>", NOWRAP),
-            _td(timeframe_label(row) or "—", NOWRAP),
-            _td(_date_cell(row), NOWRAP),
-            _td(_price(row.get("push_price") or row.get("signal_price")), NOWRAP),
+            _td(f"<strong>{symbol}</strong>", UPDATE_NOWRAP),
+            _td(timeframe_label(row) or "—", UPDATE_NOWRAP),
+            _td(_date_cell(row), UPDATE_NOWRAP),
+            _td(_price(row.get("push_price") or row.get("signal_price")), UPDATE_NOWRAP),
         ]
-        cells.extend(_td(_pct(row.get(field)), NOWRAP) for field in fields)
+        cells.extend(_td(_pct(row.get(field)), MILESTONE_CELL) for field in fields)
         rows.append("<tr>" + "".join(cells) + "</tr>")
     if not rows:
         rows.append(f'<tr><td colspan="{len(headers)}" style="{CELL}text-align:center;color:#666;">—</td></tr>')
     return (
-        f'<table style="{TABLE}" aria-label="历史绩效更新"><thead><tr>'
-        + "".join(_th(item) for item in headers)
+        f'<table style="{UPDATE_TABLE}" aria-label="历史绩效更新"><thead><tr>'
+        + "".join(_th(item, UPDATE_HEAD) for item in headers)
         + "</tr></thead><tbody>"
         + "".join(rows)
         + "</tbody></table>"
@@ -312,14 +327,14 @@ def build_body(data: EmailData) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{title}</title>
 </head>
-<body style="margin:0;padding:12px;background:#ffffff;color:#202124;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:1.45;">
-  <div style="width:100%;max-width:100%;margin:0 auto;">
-    <h1 style="margin:0 0 12px;font-size:19px;line-height:1.35;">{title}</h1>
+<body style="margin:0;padding:10px 8px;background:#ffffff;color:#202124;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:1.4;">
+  <div style="width:100%;max-width:100%;margin:0 auto;box-sizing:border-box;">
+    <h1 style="margin:0 0 10px;font-size:19px;line-height:1.3;">{title}</h1>
     {_summary_table(data)}
-    <h2 style="margin:20px 0 8px;font-size:17px;line-height:1.35;">本次新增</h2>
-    <div style="width:100%;max-width:100%;overflow-x:auto;">{_new_table(data)}</div>
-    <h2 style="margin:20px 0 8px;font-size:17px;line-height:1.35;">历史绩效更新</h2>
-    <div style="width:100%;max-width:100%;overflow-x:auto;">{_update_table(data)}</div>
+    <h2 style="margin:15px 0 6px;font-size:16px;line-height:1.3;">本次新增</h2>
+    <div style="width:100%;max-width:100%;">{_new_table(data)}</div>
+    <h2 style="margin:15px 0 6px;font-size:16px;line-height:1.3;">历史绩效更新</h2>
+    <div style="width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">{_update_table(data)}</div>
   </div>
 </body>
 </html>
