@@ -19,4 +19,4 @@ GE｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 323.6099853515625｜工�
 F｜daily+4h｜信号K 2026-09-11｜推送 2026-09-11｜价 13.975000381469727｜其他（Automobile Manufacturers）｜排名 -｜强势 否｜T+5 -5.474｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 EMR｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 152.1699981689453｜其他（Electrical Components & Equipment）｜排名 -｜强势 否｜T+5 -1.479｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 D｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 64.5199966430664｜其他（Multi-Utilities）｜排名 -｜强势 否｜T+5 -1.457｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-ALLE｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 153.4149932861328｜其他（Building Products）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+ALLE｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 153.4149932861328｜其他（Building Products）｜排名 -｜强势 否｜T+5 -0.74｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
