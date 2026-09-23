@@ -280,6 +280,11 @@
       "sector": "Health Care",
       "sector_theme": "医疗设备"
     },
+    "BE": {
+      "industry": "Electrical Components & Equipment",
+      "sector": "Industrials",
+      "sector_theme": "其他（Electrical Components & Equipment）"
+    },
     "BEN": {
       "industry": "Asset Management & Custody Banks",
       "sector": "Financials",
@@ -309,11 +314,6 @@
       "industry": "Oil & Gas Equipment & Services",
       "sector": "Energy",
       "sector_theme": "其他（Oil & Gas Equipment & Services）"
-    },
-    "BLDR": {
-      "industry": "Building Products",
-      "sector": "Industrials",
-      "sector_theme": "其他（Building Products）"
     },
     "BLK": {
       "industry": "Asset Management & Custody Banks",
@@ -1215,6 +1215,11 @@
       "sector": "Materials",
       "sector_theme": "其他（Specialty Chemicals）"
     },
+    "ILMN": {
+      "industry": "Life Sciences Tools & Services",
+      "sector": "Health Care",
+      "sector_theme": "生命科学工具"
+    },
     "INCY": {
       "industry": "Biotechnology",
       "sector": "Health Care",
@@ -1765,6 +1770,11 @@
       "sector": "Energy",
       "sector_theme": "其他（Oil & Gas Exploration & Production）"
     },
+    "P": {
+      "industry": "Technology Hardware, Storage & Peripherals",
+      "sector": "Information Technology",
+      "sector_theme": "其他（Technology Hardware, Storage & Peripherals）"
+    },
     "PANW": {
       "industry": "Systems Software",
       "sector": "Information Technology",
@@ -2130,11 +2140,6 @@
       "sector": "Communication Services",
       "sector_theme": "其他（Integrated Telecommunication Services）"
     },
-    "TAP": {
-      "industry": "Brewers",
-      "sector": "Consumer Staples",
-      "sector_theme": "其他（Brewers）"
-    },
     "TDG": {
       "industry": "Aerospace & Defense",
       "sector": "Industrials",
@@ -2239,11 +2244,6 @@
       "industry": "Building Products",
       "sector": "Industrials",
       "sector_theme": "其他（Building Products）"
-    },
-    "TTD": {
-      "industry": "Advertising",
-      "sector": "Communication Services",
-      "sector_theme": "其他（Advertising）"
     },
     "TTWO": {
       "industry": "Interactive Home Entertainment",
@@ -2516,5 +2516,5 @@
       "sector_theme": "其他（Pharmaceuticals）"
     }
   },
-  "updated_at": "2026-09-15T01:47:06.931721+00:00"
+  "updated_at": "2026-09-23T01:42:10.192605+00:00"
 }
