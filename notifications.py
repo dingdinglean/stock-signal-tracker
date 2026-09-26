@@ -310,8 +310,17 @@ def _update_table(data: EmailData) -> str:
     fields = MILESTONE_FIELDS
     headers = ("代码", "信号日", "推送价", *(_label(field) for field in fields))
     rows: list[str] = []
-    for change in data.update_changes:
-        row = change["record"]
+    by_recency = sorted(
+        data.history,
+        key=lambda row: (
+            str(row.get("last_updated") or ""),
+            str(row.get("signal_date") or ""),
+            str(row.get("signal_time") or ""),
+        ),
+        reverse=True,
+    )
+    history_rows = sorted(by_recency, key=lambda row: TIMEFRAME_ORDER[timeframe_label(row) or "日线"])
+    for row in history_rows:
         symbol = html.escape(str(row.get("symbol") or "—"))
         timeframe = timeframe_label(row) or "—"
         cells = [

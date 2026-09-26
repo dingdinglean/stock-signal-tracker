@@ -420,6 +420,36 @@ def test_performance_updates_sort_by_period_then_last_updated():
     assert body.index("DAYUPN") < body.index("DAYUPO") < body.index("WEEKUP") < body.index("MONTHUP")
 
 
+def test_history_table_renders_all_formal_history_not_only_updated_rows():
+    history = [
+        _notification_row(
+            f"history-{index}",
+            symbol=f"H{index}",
+            source_timeframe=("daily", "weekly", "monthly")[index % 3],
+            signal_date=f"2026-09-{index + 1:02d}",
+            last_updated=f"2026-09-{index + 10:02d}T10:00:00+00:00",
+        )
+        for index in range(9)
+    ]
+    changes = [
+        {"record": history[0], "new_signal": True, "milestones": [], "effectiveness": False},
+        *(
+            {"record": history[index], "new_signal": False, "milestones": ["return_1d"], "effectiveness": False}
+            for index in range(1, 5)
+        ),
+    ]
+
+    data = prepare_email_data(changes, history)
+    body = build_body(data)
+    history_table = body.split('aria-label="历史绩效更新"', 1)[1].split("</table>", 1)[0]
+    history_body = history_table.split("<tbody>", 1)[1]
+
+    assert (len(data.new_changes), len(data.update_changes), len(data.history)) == (1, 4, 9)
+    assert build_subject(data) == "【美股信号】新增 1｜更新 4｜历史 9"
+    assert history_body.count("<tr>") == 9
+    assert all(f"H{index}" in history_body for index in range(9))
+
+
 def test_performance_update_table_combines_period_with_symbol_and_compacts_dates():
     rows = [
         _notification_row("same", symbol="SAME", source_timeframe="daily", signal_date="2026-09-18", push_date="2026-09-18"),
