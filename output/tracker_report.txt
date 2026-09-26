@@ -1,22 +1,22 @@
 【美股信号验证器】
-历史正式推送总数：25
-已成熟10日信号数：5
+历史正式推送总数：26
+已成熟10日信号数：22
 强势板块内信号数：0
-非强势板块信号数：21
+非强势板块信号数：22
 
 基准：实际推送时冻结的 push_price；T+N 为 push_date 后第 N 个实际交易日收盘价。
 有效性：10 个交易日内，先触及 +5% 为有效；先触及 -5% 为无效；同日双触及为无法判定。
 
 最近具体推送：
-JCI｜日/4H｜信号K 2026-09-17｜推送 2026-09-18｜价 141.05999755859375｜其他（Building Products）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-DOC｜日/4H｜信号K 2026-09-16｜推送 2026-09-18｜价 20.350000381469727｜其他（Health Care REITs）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-CB｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 338.2699890136719｜其他（Property & Casualty Insurance）｜排名 -｜强势 否｜T+5 0.701｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-ROST｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 230.72999572753906｜其他（Apparel Retail）｜排名 -｜强势 否｜T+5 -1.786｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-IEX｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 224.1699981689453｜其他（Industrial Machinery & Supplies & Components）｜排名 -｜强势 否｜T+5 -0.201｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-GWW｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 1280.8199462890625｜其他（Industrial Machinery & Supplies & Components）｜排名 -｜强势 否｜T+5 -1.109｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-GL｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 171.1199951171875｜其他（Life & Health Insurance）｜排名 -｜强势 否｜T+5 1.344｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-GE｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 323.6099853515625｜工业｜排名 -｜强势 否｜T+5 -2.886｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-F｜daily+4h｜信号K 2026-09-11｜推送 2026-09-11｜价 13.975000381469727｜其他（Automobile Manufacturers）｜排名 -｜强势 否｜T+5 -5.474｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-EMR｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 152.1699981689453｜其他（Electrical Components & Equipment）｜排名 -｜强势 否｜T+5 -1.479｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-D｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 64.5199966430664｜其他（Multi-Utilities）｜排名 -｜强势 否｜T+5 -1.457｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-ALLE｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 153.4149932861328｜其他（Building Products）｜排名 -｜强势 否｜T+5 -0.74｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+SNPS｜周线｜信号K 2026-09-25｜推送 2026-09-25｜价 425.760009765625｜应用软件｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+JCI｜日/4H｜信号K 2026-09-17｜推送 2026-09-18｜价 141.05999755859375｜其他（Building Products）｜排名 -｜强势 否｜T+5 6.48｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+DOC｜日/4H｜信号K 2026-09-16｜推送 2026-09-18｜价 20.350000381469727｜其他（Health Care REITs）｜排名 -｜强势 否｜T+5 -0.197｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+CB｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 338.2699890136719｜其他（Property & Casualty Insurance）｜排名 -｜强势 否｜T+5 0.701｜T+10 -1.449｜T+20 pending｜MFE10 1.848｜MAE10 -1.623｜中性
+ROST｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 230.72999572753906｜其他（Apparel Retail）｜排名 -｜强势 否｜T+5 -1.786｜T+10 2.336｜T+20 pending｜MFE10 2.717｜MAE10 -3.719｜中性
+IEX｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 224.1699981689453｜其他（Industrial Machinery & Supplies & Components）｜排名 -｜强势 否｜T+5 -0.201｜T+10 2.636｜T+20 pending｜MFE10 3.399｜MAE10 -2.11｜中性
+GWW｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 1280.8199462890625｜其他（Industrial Machinery & Supplies & Components）｜排名 -｜强势 否｜T+5 -1.109｜T+10 -2.947｜T+20 pending｜MFE10 1.212｜MAE10 -3.385｜中性
+GL｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 171.1199951171875｜其他（Life & Health Insurance）｜排名 -｜强势 否｜T+5 1.344｜T+10 -2.384｜T+20 pending｜MFE10 2.98｜MAE10 -2.963｜中性
+GE｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 323.6099853515625｜工业｜排名 -｜强势 否｜T+5 -2.886｜T+10 1.075｜T+20 pending｜MFE10 1.718｜MAE10 -5.195｜无效
+F｜daily+4h｜信号K 2026-09-11｜推送 2026-09-11｜价 13.975000381469727｜其他（Automobile Manufacturers）｜排名 -｜强势 否｜T+5 -5.474｜T+10 -9.052｜T+20 pending｜MFE10 -0.179｜MAE10 -10.34｜无效
+EMR｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 152.1699981689453｜其他（Electrical Components & Equipment）｜排名 -｜强势 否｜T+5 -1.479｜T+10 3.982｜T+20 pending｜MFE10 5.06｜MAE10 -5.106｜无效
+D｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 64.5199966430664｜其他（Multi-Utilities）｜排名 -｜强势 否｜T+5 -1.457｜T+10 -5.952｜T+20 pending｜MFE10 0.992｜MAE10 -6.789｜无效
