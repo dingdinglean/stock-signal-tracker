@@ -10,7 +10,7 @@ from typing import Any
 
 MILESTONE_FIELDS = ("return_1d", "return_3d", "return_5d", "return_10d", "return_20d")
 EFFECTIVE_VALUES = {"有效", "无效", "中性", "无法判定"}
-PENDING_VALUES = {"", "pending", "待观察", "none", "null"}
+PENDING_VALUES = {"", "—", "pending", "待观察", "none", "null"}
 TIMEFRAME_ORDER = {"日线": 0, "周线": 1, "月线": 2}
 TIMEFRAME_ALIASES = {
     "day": "日线",
@@ -40,11 +40,13 @@ FOUR_HOUR_ALIASES = {
 
 @dataclass(frozen=True)
 class EmailData:
-    """The single filtered source used by the subject, summary, and tables."""
+    """Email-only views of the complete, independently persisted history."""
 
     new_changes: tuple[dict[str, Any], ...]
     update_changes: tuple[dict[str, Any], ...]
     history: tuple[dict[str, str], ...]
+    display_history: tuple[dict[str, str], ...]
+    eliminated_count: int
     strong_count: int
     non_strong_count: int
 
@@ -52,9 +54,35 @@ class EmailData:
     def has_changes(self) -> bool:
         return bool(self.new_changes or self.update_changes)
 
+    @property
+    def observing_count(self) -> int:
+        return sum(_retention_reason(row) == "观察中" for row in self.display_history)
+
+    @property
+    def nonnegative_count(self) -> int:
+        return sum(_retention_reason(row) == "T+20非负" for row in self.display_history)
+
 
 def _pending(value: Any) -> bool:
     return str(value or "").strip().lower() in PENDING_VALUES
+
+
+def _t20_value(row: dict[str, Any]) -> float | None:
+    value = row.get("return_20d")
+    if _pending(value):
+        return None
+    try:
+        number = float(str(value).strip().removesuffix("%"))
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
+def _retention_reason(row: dict[str, Any]) -> str | None:
+    value = _t20_value(row)
+    if value is None:
+        return "观察中"
+    return "T+20非负" if value >= 0 else None
 
 
 def _true(value: Any) -> bool:
@@ -142,13 +170,20 @@ def _sort_changes(changes: list[dict[str, Any]], *, updates: bool) -> tuple[dict
 def prepare_email_data(changes: list[dict[str, Any]], history: list[dict[str, str]]) -> EmailData:
     """Filter 4H/unknown rows once, then recompute every email statistic."""
     filtered_history = tuple(row for row in history if timeframe_label(row) is not None)
+    display_history = tuple(row for row in filtered_history if _retention_reason(row) is not None)
     filtered_changes = [item for item in changes if timeframe_label(item["record"]) is not None]
     new_changes = [item for item in filtered_changes if bool(item.get("new_signal"))]
     update_changes = [item for item in filtered_changes if not bool(item.get("new_signal"))]
+    eliminated_count = sum(
+        "return_20d" in item.get("milestones", ()) and _retention_reason(item["record"]) is None
+        for item in filtered_changes
+    )
     return EmailData(
         new_changes=_sort_changes(new_changes, updates=False),
         update_changes=_sort_changes(update_changes, updates=True),
         history=filtered_history,
+        display_history=display_history,
+        eliminated_count=eliminated_count,
         strong_count=sum(row.get("strong_sector") == "是" for row in filtered_history),
         non_strong_count=sum(row.get("strong_sector") == "否" for row in filtered_history),
     )
@@ -264,14 +299,22 @@ def _th(value: str, style: str = HEAD) -> str:
 
 
 def _summary_table(data: EmailData) -> str:
-    headers = ("本次新增", "绩效更新", "正式历史", "强势板块", "非强势板块")
-    values = (len(data.new_changes), len(data.update_changes), len(data.history), data.strong_count, data.non_strong_count)
+    headers = ("本次新增", "绩效更新", "强势板块", "非强势板块")
+    values = (len(data.new_changes), len(data.update_changes), data.strong_count, data.non_strong_count)
     return (
         f'<table style="{SUMMARY_TABLE}" aria-label="邮件汇总"><thead><tr>'
         + "".join(_th(item, SUMMARY_HEAD) for item in headers)
         + "</tr></thead><tbody><tr>"
         + "".join(_td(value, SUMMARY_VALUE) for value in values)
         + "</tr></tbody></table>"
+    )
+
+
+def _retention_summary(data: EmailData) -> str:
+    return (
+        '<p aria-label="历史留存汇总" style="margin:6px 0 0;font-size:13px;line-height:1.35;color:#5f6368;">'
+        f"历史留存：{len(data.display_history)}｜观察中：{data.observing_count}｜"
+        f"T+20非负：{data.nonnegative_count}｜本次淘汰：{data.eliminated_count}</p>"
     )
 
 
@@ -308,10 +351,10 @@ def _new_table(data: EmailData) -> str:
 
 def _update_table(data: EmailData) -> str:
     fields = MILESTONE_FIELDS
-    headers = ("代码", "信号日", "推送价", *(_label(field) for field in fields))
+    headers = ("代码", "信号日", "推送价", *(_label(field) for field in fields), "留存原因")
     rows: list[str] = []
     by_recency = sorted(
-        data.history,
+        data.display_history,
         key=lambda row: (
             str(row.get("last_updated") or ""),
             str(row.get("signal_date") or ""),
@@ -329,6 +372,7 @@ def _update_table(data: EmailData) -> str:
             _td(_price(row.get("push_price") or row.get("signal_price")), UPDATE_NOWRAP),
         ]
         cells.extend(_td(_pct(row.get(field)), MILESTONE_CELL) for field in fields)
+        cells.append(_td(_retention_reason(row) or "—", UPDATE_NOWRAP))
         rows.append("<tr>" + "".join(cells) + "</tr>")
     if not rows:
         rows.append(f'<tr><td colspan="{len(headers)}" style="{CELL}text-align:center;color:#666;">—</td></tr>')
@@ -342,7 +386,7 @@ def _update_table(data: EmailData) -> str:
 
 
 def build_subject(data: EmailData) -> str:
-    return f"【美股信号】新增 {len(data.new_changes)}｜更新 {len(data.update_changes)}｜历史 {len(data.history)}"
+    return f"【美股信号】新增 {len(data.new_changes)}｜更新 {len(data.update_changes)}"
 
 
 def build_body(data: EmailData) -> str:
@@ -359,6 +403,7 @@ def build_body(data: EmailData) -> str:
   <div style="width:100%;max-width:100%;margin:0 auto;box-sizing:border-box;">
     <h1 style="margin:0 0 10px;font-size:19px;line-height:1.3;">{title}</h1>
     {_summary_table(data)}
+    {_retention_summary(data)}
     <h2 style="margin:15px 0 6px;font-size:16px;line-height:1.3;">本次新增</h2>
     <div style="width:100%;max-width:100%;">{_new_table(data)}</div>
     <h2 style="margin:15px 0 6px;font-size:16px;line-height:1.3;">历史绩效更新</h2>

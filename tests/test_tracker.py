@@ -290,7 +290,7 @@ def test_multiple_signal_changes_are_combined_into_one_body():
     body = build_body(data)
     assert len(changes) == 2
     assert "AMD" in body and "NVDA" in body
-    assert build_subject(data) == "【美股信号】新增 1｜更新 1｜历史 2"
+    assert build_subject(data) == "【美股信号】新增 1｜更新 1"
 
 
 @pytest.mark.parametrize(
@@ -357,7 +357,7 @@ def test_email_filters_4h_before_all_counts_and_tables():
 
     assert (len(data.new_changes), len(data.update_changes), len(data.history)) == (3, 1, 4)
     assert (data.strong_count, data.non_strong_count) == (2, 2)
-    assert build_subject(data) == "【美股信号】新增 3｜更新 1｜历史 4"
+    assert build_subject(data) == "【美股信号】新增 3｜更新 1"
     assert all(marker not in body for marker in ("HNEW", "HUP", "4H", "4h", "240m"))
     assert all(symbol in body for symbol in ("F", "ORCL", "XXX", "DUP"))
 
@@ -444,10 +444,78 @@ def test_history_table_renders_all_formal_history_not_only_updated_rows():
     history_table = body.split('aria-label="历史绩效更新"', 1)[1].split("</table>", 1)[0]
     history_body = history_table.split("<tbody>", 1)[1]
 
-    assert (len(data.new_changes), len(data.update_changes), len(data.history)) == (1, 4, 9)
-    assert build_subject(data) == "【美股信号】新增 1｜更新 4｜历史 9"
+    assert (len(data.new_changes), len(data.update_changes), len(data.display_history)) == (1, 4, 9)
+    assert build_subject(data) == "【美股信号】新增 1｜更新 4"
     assert history_body.count("<tr>") == 9
     assert all(f"H{index}" in history_body for index in range(9))
+
+
+@pytest.mark.parametrize(
+    ("symbol", "return_10d", "return_20d", "displayed", "reason"),
+    [
+        ("PENDING_NONE", "", None, True, "观察中"),
+        ("PENDING_DASH", "", "—", True, "观察中"),
+        ("POSITIVE", "", "+5%", True, "T+20非负"),
+        ("ZERO", "", "0%", True, "T+20非负"),
+        ("NEGATIVE", "", "-0.1%", False, None),
+        ("EARLY_LOSS", "-20", "", True, "观察中"),
+    ],
+)
+def test_history_retention_uses_only_final_t20(symbol, return_10d, return_20d, displayed, reason):
+    row = _notification_row(symbol, symbol=symbol, return_10d=return_10d, return_20d=return_20d)
+    data = prepare_email_data([], [row])
+    body = build_body(data)
+    history_table = body.split('aria-label="历史绩效更新"', 1)[1].split("</table>", 1)[0]
+
+    assert row in data.history
+    assert (row in data.display_history) is displayed
+    assert (symbol in history_table) is displayed
+    if reason:
+        assert reason in history_table
+
+
+def test_retention_summary_counts_first_elimination_only_once():
+    pending = _notification_row("pending", symbol="PENDING", return_20d="")
+    positive = _notification_row("positive", symbol="POSITIVE", return_20d="5")
+    zero = _notification_row("zero", symbol="ZERO", return_20d="0")
+    old_negative = _notification_row("negative", symbol="NEGATIVE", return_20d="")
+    negative = _notification_row("negative", symbol="NEGATIVE", return_20d="-0.1")
+    history = [pending, positive, zero, negative]
+
+    first_changes = changes_between([old_negative], [negative])
+    first_data = prepare_email_data(first_changes, history)
+    first_body = build_body(first_data)
+
+    assert len(first_data.history) == 4
+    assert len(first_data.display_history) == 3
+    assert (first_data.observing_count, first_data.nonnegative_count, first_data.eliminated_count) == (1, 2, 1)
+    assert "历史留存：3｜观察中：1｜T+20非负：2｜本次淘汰：1" in first_body
+    assert build_subject(first_data) == "【美股信号】新增 0｜更新 1"
+    summary_table = first_body.split('aria-label="邮件汇总"', 1)[1].split("</table>", 1)[0]
+    assert "正式历史" not in summary_table
+    assert all(label in summary_table for label in ("本次新增", "绩效更新", "强势板块", "非强势板块"))
+
+    repeated_data = prepare_email_data(changes_between([negative], [dict(negative)]), history)
+    assert repeated_data.eliminated_count == 0
+
+    later_change = dict(negative, return_10d="1.2")
+    later_data = prepare_email_data(changes_between([negative], [later_change]), [pending, positive, zero, later_change])
+    assert len(later_data.update_changes) == 1
+    assert later_data.eliminated_count == 0
+
+
+def test_email_retention_filter_does_not_remove_rows_from_history_file(tmp_path):
+    history_path = tmp_path / "signal_history.csv"
+    retained = _notification_row("retained", symbol="RETAINED", return_20d="0")
+    eliminated = _notification_row("eliminated", symbol="ELIMINATED", return_20d="-0.1")
+    tracker._write_csv(history_path, [retained, eliminated], tracker.HISTORY_FIELDS)
+
+    stored_history = tracker._read_csv(history_path)
+    data = prepare_email_data([], stored_history)
+
+    assert {row["signal_id"] for row in data.history} == {"retained", "eliminated"}
+    assert {row["signal_id"] for row in data.display_history} == {"retained"}
+    assert {row["signal_id"] for row in tracker._read_csv(history_path)} == {"retained", "eliminated"}
 
 
 def test_performance_update_table_combines_period_with_symbol_and_compacts_dates():
@@ -467,6 +535,7 @@ def test_performance_update_table_combines_period_with_symbol_and_compacts_dates
     assert "26/12/31→27/01/02" in history_table
     assert "<strong>SMON</strong><br><span" in history_table and ">周线</span>" in history_table
     assert ">周期</th>" not in history_table
+    assert ">留存原因</th>" in history_table
     assert all(label in history_table for label in ("T+1", "T+3", "T+5", "T+10", "T+20"))
 
 
