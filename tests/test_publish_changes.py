@@ -270,16 +270,211 @@ def test_no_local_changes_does_not_push(tmp_path, monkeypatch):
 def test_workflows_share_concurrency_and_do_not_force_push():
     tracker_workflow = Path(".github/workflows/tracker.yml").read_text(encoding="utf-8")
     refresh_workflow = Path(".github/workflows/refresh_constituents.yml").read_text(encoding="utf-8")
+    email_workflow = Path(".github/workflows/test_email.yml").read_text(encoding="utf-8")
+    ci_workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     publisher = Path("publish_changes.py").read_text(encoding="utf-8")
     for text in (tracker_workflow, refresh_workflow):
+        assert "permissions:\n  contents: write\n" in text
         assert "group: tracker-data-${{ github.repository }}" in text
         assert "cancel-in-progress: false" in text
         assert "python publish_changes.py" in text
         assert "--force" not in text
         assert "git push" not in text
+    assert 'cron: "30 23 * * 1-5"' in tracker_workflow
+    assert 'cron: "0 18 * * 0"' in refresh_workflow
     assert "success() && inputs.test_email != true" in tracker_workflow
     assert "fetch-depth: 0" in tracker_workflow
     assert "python sector_map.py --refresh" in refresh_workflow
+    refresh_commit = refresh_workflow.split("Commit constituent cache", 1)[1]
+    assert "always()" not in refresh_commit
+    assert "permissions:\n  contents: read\n" in email_workflow
+    assert "contents: write" not in email_workflow
+    assert "permissions:\n  contents: read\n" in ci_workflow
+    assert "python-version: \"3.11\"" in ci_workflow
+    assert "pip check" in ci_workflow
+    assert "python -m pytest -q" in ci_workflow
+    assert "publish_changes.py" not in ci_workflow
     assert "push --force" not in publisher
     assert '["--force"]' not in publisher
     assert "force push is forbidden" in publisher
+
+
+def test_repository_source_never_invokes_force_push():
+    """A force-push flag may appear only as a rejection or an assertion."""
+    allowed = (" not in ", 'arg == "--force"', 'startswith("--force")', "force push is forbidden")
+    offenders = []
+    for path in Path(".").rglob("*"):
+        if not path.is_file() or path.suffix not in {".py", ".yml", ".yaml", ".sh", ".md"}:
+            continue
+        if any(part in {".git", "__pycache__", ".pytest_cache"} for part in path.parts):
+            continue
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if "--force" not in line and "force-with-lease" not in line and "push -f" not in line:
+                continue
+            if any(token in line for token in allowed):
+                continue
+            offenders.append(f"{path}:{lineno}: {line.strip()}")
+    assert offenders == []
+
+
+_FROZEN_HISTORY_FIELDS = (
+    "signal_id", "symbol", "signal_date", "signal_time", "signal_price", "push_date", "push_price",
+    "source_run_id", "source_radar", "source_timeframe", "source_signal_level", "daily_dxdx", "h4_dxdx",
+    "industry", "sector_theme", "strong_sector", "sector_rank", "sector_snapshot_run_id",
+)
+
+
+def _load_real_history() -> list[dict[str, str]]:
+    return publish_changes._parse_csv(Path("data/signal_history.csv").read_text(encoding="utf-8"))
+
+
+def _fill_empty_return(row: dict[str, str], value: str, stamp: str) -> str:
+    for field in ("return_1d", "return_3d", "return_5d", "return_10d", "return_20d"):
+        if not (row.get(field) or "").strip():
+            row[field] = value
+            row["last_updated"] = stamp
+            return field
+    row["last_updated"] = stamp
+    return "last_updated"
+
+
+def test_real_history_merge_keeps_every_record_once_and_restores_backup():
+    history_path = Path("data/signal_history.csv")
+    backup = history_path.read_bytes()
+    try:
+        rows = publish_changes._parse_csv(backup.decode("utf-8"))
+        original_ids = [row["signal_id"] for row in rows]
+        assert len(original_ids) == len(set(original_ids))
+        empty = [index for index, row in enumerate(rows) if not (row.get("return_1d") or "").strip()]
+        assert len(empty) >= 2
+        left = [dict(row) for row in rows]
+        right = [dict(row) for row in rows]
+        left_field = _fill_empty_return(left[empty[0]], "0.51", "2026-10-10T12:00:00+00:00")
+        right_field = _fill_empty_return(right[empty[1]], "0.62", "2026-10-10T13:00:00+00:00")
+        left.append(_row("writer-a", symbol="ZZZA", push_price="1.00"))
+        right.append(_row("writer-b", symbol="ZZZB", push_price="2.00"))
+        shared = _row("writer-both", symbol="ZZZC", push_price="3.00")
+        merged = merge_history_rows(rows, left + [dict(shared)], right + [dict(shared)])
+        ids = [row["signal_id"] for row in merged]
+        assert len(ids) == len(set(ids)) == len(original_ids) + 3
+        assert ids[: len(original_ids)] == original_ids
+        assert ids.count("writer-a") == ids.count("writer-b") == ids.count("writer-both") == 1
+        published = {row["signal_id"]: row for row in merged}
+        for original in rows:
+            for field in _FROZEN_HISTORY_FIELDS:
+                assert published[original["signal_id"]][field] == (original.get(field) or "").strip()
+        assert published[rows[empty[0]]["signal_id"]][left_field] == "0.51"
+        assert published[rows[empty[1]]["signal_id"]][right_field] == "0.62"
+    finally:
+        if history_path.read_bytes() != backup:
+            history_path.write_bytes(backup)
+            raise AssertionError("data/signal_history.csv changed; restored from backup")
+    assert history_path.read_bytes() == backup
+
+
+def _seed_real_history_repo(tmp_path: Path):
+    bare = tmp_path / "origin.git"
+    local = tmp_path / "local"
+    other = tmp_path / "other"
+    _git(tmp_path, "init", "--bare", "-b", "main", str(bare))
+    _git(tmp_path, "init", "-b", "main", str(local))
+    _identity(local)
+    data_dir = local / "data"
+    data_dir.mkdir()
+    (local / "output").mkdir()
+    for name in ("signal_history.csv", "state.json", "sector_snapshots.csv", "sector_metadata_cache.json", "events.csv"):
+        (data_dir / name).write_bytes((Path("data") / name).read_bytes())
+    rows = _load_real_history()
+    previous = (tracker.REPORT_CSV, tracker.REPORT_TXT)
+    tracker.REPORT_CSV = local / "output" / "tracker_report.csv"
+    tracker.REPORT_TXT = local / "output" / "tracker_report.txt"
+    try:
+        tracker.write_reports(rows)
+    finally:
+        tracker.REPORT_CSV, tracker.REPORT_TXT = previous
+    _commit_all(local, "real history backup")
+    _git(local, "remote", "add", "origin", str(bare))
+    _git(local, "push", "-u", "origin", "main")
+    _git(tmp_path, "clone", str(bare), str(other))
+    _identity(other)
+    return bare, local, other, rows
+
+
+def _apply_real_writer(repo: Path, rows: list[dict[str, str]], index: int, new_id: str, value: str, stamp: str, run_id: int) -> str:
+    copied = [dict(row) for row in rows]
+    field = _fill_empty_return(copied[index], value, stamp)
+    added = dict(copied[index])
+    added.update({
+        "signal_id": new_id, "symbol": "ZZZ", "signal_price": "1", "push_price": "1",
+        "return_1d": "", "return_3d": "", "return_5d": "", "return_10d": "", "return_20d": "",
+        "mfe_10d": "", "mae_10d": "", "mfe_20d": "", "mae_20d": "",
+        "effectiveness": "pending", "sessions_observed": "0", "last_updated": stamp,
+        "source_run_id": str(run_id), "strong_sector": "", "sector_rank": "", "sector_snapshot_run_id": "",
+    })
+    copied.append(added)
+    tracker._write_csv(repo / "data" / "signal_history.csv", copied, tracker.HISTORY_FIELDS)
+    state_path = repo / "data" / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["processed_gupiao_run_ids"] = sorted(set(state["processed_gupiao_run_ids"]) | {run_id})
+    state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+    return field
+
+
+def test_two_concurrent_writers_rebase_real_history_without_loss_or_duplication(tmp_path, monkeypatch):
+    history_path = Path("data/signal_history.csv")
+    state_path = Path("data/state.json")
+    backup = history_path.read_bytes()
+    state_backup = state_path.read_bytes()
+    try:
+        _bare, local, other, rows = _seed_real_history_repo(tmp_path)
+        original_ids = [row["signal_id"] for row in rows]
+        empty = [index for index, row in enumerate(rows) if not (row.get("return_1d") or "").strip()]
+        assert len(empty) >= 2
+        real_run = subprocess.run
+        pushes: list[list[str]] = []
+
+        def wrapped(cmd, *args, **kwargs):
+            if isinstance(cmd, list) and cmd[:2] == ["git", "push"]:
+                pushes.append(list(cmd))
+                assert "--force" not in cmd and "--force-with-lease" not in cmd
+                assert not any(str(part).startswith("+") for part in cmd)
+                if len(pushes) == 1:
+                    _apply_real_writer(other, rows, empty[0], "writer-a", "0.51", "2026-10-10T12:00:00+00:00", 990001)
+                    _commit_all(other, "writer A")
+                    real_run(["git", "push", "origin", "HEAD:main"], cwd=other, check=True, capture_output=True, text=True)
+            return real_run(cmd, *args, **kwargs)
+
+        monkeypatch.setattr(publish_changes.subprocess, "run", wrapped)
+        right_field = _apply_real_writer(local, rows, empty[1], "writer-b", "0.62", "2026-10-10T13:00:00+00:00", 990002)
+        original_state_ids = set(json.loads(state_backup)["processed_gupiao_run_ids"])
+
+        publish_changes.publish_tracker_changes(local, "main", attempts=4, retry_delay=0)
+
+        published_rows = publish_changes._parse_csv(_git(local, "show", "origin/main:data/signal_history.csv").stdout)
+        published_ids = [row["signal_id"] for row in published_rows]
+        assert len(pushes) >= 2
+        assert len(published_ids) == len(set(published_ids)) == len(original_ids) + 2
+        assert published_ids[: len(original_ids)] == original_ids
+        assert published_ids.count("writer-a") == published_ids.count("writer-b") == 1
+        published = {row["signal_id"]: row for row in published_rows}
+        for original in rows:
+            for field in _FROZEN_HISTORY_FIELDS:
+                assert published[original["signal_id"]][field] == (original.get(field) or "").strip(), (original["signal_id"], field)
+        assert published[rows[empty[0]]["signal_id"]]["return_1d"] == "0.51"
+        assert published[rows[empty[1]]["signal_id"]][right_field] == "0.62"
+        state = json.loads(_git(local, "show", "origin/main:data/state.json").stdout)
+        assert original_state_ids <= set(state["processed_gupiao_run_ids"])
+        assert {990001, 990002} <= set(state["processed_gupiao_run_ids"])
+        assert len(state["processed_gupiao_run_ids"]) == len(set(state["processed_gupiao_run_ids"]))
+    finally:
+        restored = False
+        if history_path.read_bytes() != backup:
+            history_path.write_bytes(backup)
+            restored = True
+        if state_path.read_bytes() != state_backup:
+            state_path.write_bytes(state_backup)
+            restored = True
+        if restored:
+            raise AssertionError("history data changed during the simulation; restored from backup")
+    assert history_path.read_bytes() == backup
+    assert state_path.read_bytes() == state_backup
