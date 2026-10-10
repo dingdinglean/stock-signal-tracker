@@ -1,0 +1,45 @@
+name: Refresh index constituents
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly, away from the weekday 23:30 UTC tracker run.
+    - cron: "0 18 * * 0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tracker-data-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run verifier tests
+        run: python -m pytest -q
+
+      - name: Refresh S&P 500 and Nasdaq-100 cache
+        run: python sector_map.py --refresh
+
+      - name: Commit constituent cache
+        env:
+          PUBLISH_BRANCH: ${{ github.ref_name }}
+          PUBLISH_MESSAGE: Refresh index constituent cache
+        run: python publish_changes.py
