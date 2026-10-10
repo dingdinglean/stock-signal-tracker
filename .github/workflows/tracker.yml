@@ -20,6 +20,12 @@ on:
 permissions:
   contents: write
 
+# Queue scheduled and manual runs. Cancelling an in-progress run would discard
+# the history it has already built, so later runs wait instead.
+concurrency:
+  group: tracker-data-${{ github.repository }}
+  cancel-in-progress: false
+
 jobs:
   track:
     runs-on: ubuntu-latest
@@ -27,6 +33,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -78,17 +86,11 @@ jobs:
         run: cat output/tracker_report.txt || true
 
       - name: Commit tracker history
-        if: ${{ inputs.test_email != true && inputs.preview_email != true }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ output/
-          if git diff --cached --quiet; then
-            echo "No tracker changes to commit."
-          else
-          git commit -m "Update signal history"
-            git push
-          fi
+        id: commit_history
+        if: ${{ success() && inputs.test_email != true && inputs.preview_email != true }}
+        env:
+          PUBLISH_BRANCH: ${{ github.ref_name }}
+        run: python publish_changes.py
 
       - name: Upload tracker report artifact
         id: artifact_upload_first
@@ -118,4 +120,9 @@ jobs:
 
       - name: Warn when both artifact uploads fail
         if: ${{ always() && inputs.test_email != true && inputs.preview_email != true && steps.artifact_upload_first.outcome == 'failure' && steps.artifact_upload_retry.outcome == 'failure' }}
-        run: echo "::warning::Artifact upload failed after retry; tracker data and report were already committed to repository."
+        run: |
+          if [ "${{ steps.commit_history.outcome }}" = "success" ]; then
+            echo "::warning::Artifact upload failed after retry; tracker data and report were already committed to the repository."
+          else
+            echo "::warning::Artifact upload failed after retry."
+          fi
