@@ -324,8 +324,13 @@ _FROZEN_HISTORY_FIELDS = (
 )
 
 
-def _load_real_history() -> list[dict[str, str]]:
-    return publish_changes._parse_csv(Path("data/signal_history.csv").read_text(encoding="utf-8"))
+def _history_with_pending_returns(text: str) -> list[dict[str, str]]:
+    """Keep production coverage, with deterministic pending rows only in memory."""
+    rows = publish_changes._parse_csv(text)
+    for signal_id, symbol in (("fixture-pending-a", "ZZZA"), ("fixture-pending-b", "ZZZB")):
+        assert signal_id not in {row["signal_id"] for row in rows}
+        rows.append(_row(signal_id, symbol=symbol, source_run_id="990000"))
+    return rows
 
 
 def _fill_empty_return(row: dict[str, str], value: str, stamp: str) -> str:
@@ -342,7 +347,7 @@ def test_real_history_merge_keeps_every_record_once_and_restores_backup():
     history_path = Path("data/signal_history.csv")
     backup = history_path.read_bytes()
     try:
-        rows = publish_changes._parse_csv(backup.decode("utf-8"))
+        rows = _history_with_pending_returns(backup.decode("utf-8"))
         original_ids = [row["signal_id"] for row in rows]
         assert len(original_ids) == len(set(original_ids))
         empty = [index for index, row in enumerate(rows) if not (row.get("return_1d") or "").strip()]
@@ -384,7 +389,8 @@ def _seed_real_history_repo(tmp_path: Path):
     (local / "output").mkdir()
     for name in ("signal_history.csv", "state.json", "sector_snapshots.csv", "sector_metadata_cache.json", "events.csv"):
         (data_dir / name).write_bytes((Path("data") / name).read_bytes())
-    rows = _load_real_history()
+    rows = _history_with_pending_returns((data_dir / "signal_history.csv").read_text(encoding="utf-8"))
+    tracker._write_csv(data_dir / "signal_history.csv", rows, tracker.HISTORY_FIELDS)
     previous = (tracker.REPORT_CSV, tracker.REPORT_TXT)
     tracker.REPORT_CSV = local / "output" / "tracker_report.csv"
     tracker.REPORT_TXT = local / "output" / "tracker_report.txt"
