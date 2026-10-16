@@ -9,16 +9,20 @@ import io
 import json
 import os
 import re
+import time
 from collections import defaultdict
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+import pandas as pd
+
 from github_artifacts import GitHubArtifactError, GitHubPublicArtifacts, find_member, parse_github_time
 from email_sender import send_connectivity_test, send_email
 from notifications import build_body, build_subject, changes_between, prepare_email_data
 from performance import calculate_performance, fetch_history, freeze_rth_push_price
+from dynamic_tracking import (DYNAMIC_FIELDS, dynamic_quote, latest_completed_session, mark_visibility, strategy_statistics, number)
 from sector_map import load_metadata, metadata_for
 
 
@@ -50,6 +54,7 @@ HISTORY_FIELDS = [
     "daily_dxdx", "h4_dxdx", "industry", "sector_theme", "strong_sector", "sector_rank", "sector_snapshot_run_id",
     "return_1d", "return_3d", "return_5d", "return_10d", "return_20d", "mfe_10d", "mae_10d", "mfe_20d", "mae_20d",
     "effectiveness", "sessions_observed", "last_updated",
+    *DYNAMIC_FIELDS,
 ]
 SNAPSHOT_FIELDS = ["market_date", "run_id", "run_created_at", "rank1_theme", "rank2_theme", "rank3_theme"]
 EMAIL_SENT = re.compile(r"邮件是否发送\s*[:：]\s*是|email\s+(?:sent|delivery)\s+(?:success|successful)", re.I)
@@ -379,26 +384,59 @@ def freeze_sector_context(history: list[dict[str, str]], snapshots: list[dict[st
             event["strong_sector"] = "否"
 
 
-def update_performance(history: list[dict[str, str]]) -> None:
-    now = datetime.now(timezone.utc).isoformat()
+def update_performance(history: list[dict[str, str]], now: datetime | None = None) -> None:
+    now = now or datetime.now(timezone.utc)
+    checked_at = now.isoformat()
+    cutoff = latest_completed_session(now)
     grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
     for event in history:
-        if int(float(event.get("sessions_observed") or 0)) < 20:
-            grouped[event["symbol"]].append(event)
+        if not event.get("display_state"):
+            # Only a fallback when the new quote fails: preserve the old email
+            # decision until a fresh comparable quote can replace it.
+            old = number(event.get("return_20d"))
+            event["display_state"] = "hidden" if old is not None and old < 0 else "visible"
+            event["visibility_events"] = json.dumps([{"state": event["display_state"], "source": "legacy_T20",
+                                                       "checked_at": checked_at}], separators=(",", ":"))
+        grouped[event["symbol"]].append(event)
     for symbol, events in grouped.items():
-        try:
-            first = min(date.fromisoformat(item.get("push_date") or item["signal_date"]) for item in events)
-            prices = fetch_history(symbol, first)
-        except Exception as exc:
-            print(f"::warning::{symbol} performance data failed: {exc}")
-            continue
+        first = min(date.fromisoformat(item.get("push_date") or item["signal_date"]) for item in events)
+        prices = None
+        error = "行情缺失"
+        for attempt in range(3):
+            try:
+                candidate = fetch_history(symbol, first)
+                # Never calculate a milestone or dynamic result from an open bar.
+                candidate = candidate[[pd.Timestamp(x).date() <= cutoff for x in candidate.index]]
+                if candidate.empty or pd.Timestamp(candidate.index[-1]).date() != cutoff:
+                    raise ValueError("行情过期／停牌、退市或代码变更待核实")
+                prices = candidate
+                break
+            except Exception as exc:
+                error = str(exc)
+                if attempt < 2:
+                    time.sleep(attempt + 1)
         for event in events:
-            push_date = date.fromisoformat(event.get("push_date") or event["signal_date"])
-            baseline = event.get("push_price") or event.get("signal_price")
-            if event.get("source_radar") == "weekly_monthly" and not event.get("push_price"):
-                continue
-            event.update(calculate_performance(prices, push_date, baseline))
-            event["last_updated"] = now
+            event["quote_checked_at"] = checked_at
+            try:
+                if prices is None:
+                    raise ValueError(error)
+                if event.get("source_radar") == "weekly_monthly" and not event.get("push_price"):
+                    raise ValueError("原始推送基准缺失")
+                quote = dynamic_quote(prices, event, cutoff)
+                push_date = date.fromisoformat(event.get("push_date") or event["signal_date"])
+                baseline = event.get("push_price") or event.get("signal_price")
+                legacy = calculate_performance(prices, push_date, baseline)
+                # Historical milestones and original source fields stay frozen.
+                for field, value in legacy.items():
+                    if field == "sessions_observed" or not event.get(field) or event.get(field) == "pending":
+                        event[field] = value
+                event.update(quote)
+                event["last_updated"] = checked_at
+            except (ValueError, TypeError, KeyError, OverflowError) as exc:
+                event["quote_status"] = "pending"
+                event["quote_error"] = str(exc)
+                print(f"::warning::{symbol} data pending: {exc}")
+            mark_visibility(event, now.astimezone(NEW_YORK).date(), checked_at)
 
 
 def _mature(event: dict[str, str]) -> bool:
@@ -428,6 +466,9 @@ def write_reports(history: list[dict[str, str]]) -> None:
                 mfe=item.get("mfe_10d") or "pending", mae=item.get("mae_10d") or "pending", effect=item.get("effectiveness", "pending"),
             )
         )
+    stats = strategy_statistics(history)
+    lines.extend(["", "全部历史策略统计（包括邮件隐藏及4小时记录）：", json.dumps(stats, ensure_ascii=False),
+                  "最新收益采用拆股、分红复权后的可比价 / 原始推送价；缺失数据不按0计，统计保留最后有效收益。"])
     REPORT_TXT.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -445,6 +486,7 @@ def run_tracker() -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
     _write_csv(HISTORY_CSV, history, HISTORY_FIELDS)
     write_reports(history)
     _save_state(state)
+    PREVIEW_EMAIL_HTML.write_text(build_body(prepare_email_data(changes_between(old_history, history), history)), encoding="utf-8")
     return history, changes_between(old_history, history)
 
 
@@ -452,14 +494,14 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Update the independent signal verifier")
     email_mode = parser.add_mutually_exclusive_group()
     email_mode.add_argument("--test-email", action="store_true", help="send SMTP connectivity test only")
-    email_mode.add_argument("--preview-email", action="store_true", help="send the committed HTML UI preview only")
+    email_mode.add_argument("--preview-email", action="store_true", help="send a preview rendered from the current persisted history only")
     args = parser.parse_args(argv)
     if args.test_email:
         send_connectivity_test()
         print("Tracker email connectivity test sent.")
         return
     if args.preview_email:
-        send_email(PREVIEW_EMAIL_SUBJECT, PREVIEW_EMAIL_HTML.read_text(encoding="utf-8"))
+        send_email(PREVIEW_EMAIL_SUBJECT, build_body(prepare_email_data([], _load_history())))
         print("Tracker HTML preview email sent.")
         return
     history, changes = run_tracker()
@@ -473,3 +515,4 @@ def main(argv: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
+

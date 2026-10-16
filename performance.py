@@ -18,18 +18,28 @@ def fetch_history(symbol: str, signal_date: date, today: date | None = None) -> 
     import yfinance as yf
 
     today = today or date.today()
-    frame = yf.Ticker(symbol).history(
+    ticker = yf.Ticker(symbol)
+    frame = ticker.history(
         start=(signal_date - timedelta(days=7)).isoformat(),
         end=(today + timedelta(days=2)).isoformat(),
         interval="1d",
         auto_adjust=False,
         prepost=False,
+        actions=True,
+        repair=True,
+        timeout=20,
     )
     if frame is None or frame.empty:
         return pd.DataFrame()
     frame = frame.rename(columns=str.lower)
-    keep = [column for column in ("open", "high", "low", "close", "volume") if column in frame.columns]
-    return frame[keep].dropna(subset=["close"])
+    keep = [column for column in ("open", "high", "low", "close", "adj close", "volume", "dividends", "stock splits") if column in frame.columns]
+    result = frame[keep].dropna(subset=["close"])
+    metadata = getattr(ticker, "history_metadata", {}) or {}
+    result.attrs["currency"] = metadata.get("currency", "")
+    actual_symbol = metadata.get("symbol")
+    if actual_symbol and actual_symbol.upper().replace(".", "-") != symbol.upper().replace(".", "-"):
+        raise ValueError("行情代码不匹配")
+    return result
 
 
 def freeze_rth_push_price(symbol: str, delivered_at: datetime) -> float | None:
@@ -125,3 +135,4 @@ def calculate_performance(frame: pd.DataFrame, signal_date: date, signal_price: 
             return result
     result["effectiveness"] = "中性"
     return result
+

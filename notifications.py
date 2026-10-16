@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from dynamic_tracking import display_allowed, number, strategy_statistics, quote_current
+
 
 MILESTONE_FIELDS = ("return_1d", "return_3d", "return_5d", "return_10d", "return_20d")
 EFFECTIVE_VALUES = {"有效", "无效", "中性", "无法判定"}
@@ -49,40 +51,21 @@ class EmailData:
     eliminated_count: int
     strong_count: int
     non_strong_count: int
+    performance_update_count: int
+    all_history: tuple[dict[str, Any], ...]
 
     @property
     def has_changes(self) -> bool:
         return bool(self.new_changes or self.update_changes)
 
-    @property
-    def observing_count(self) -> int:
-        return sum(_retention_reason(row) == "观察中" for row in self.display_history)
-
-    @property
-    def nonnegative_count(self) -> int:
-        return sum(_retention_reason(row) == "T+20非负" for row in self.display_history)
-
-
 def _pending(value: Any) -> bool:
-    return str(value or "").strip().lower() in PENDING_VALUES
-
-
-def _t20_value(row: dict[str, Any]) -> float | None:
-    value = row.get("return_20d")
-    if _pending(value):
-        return None
-    try:
-        number = float(str(value).strip().removesuffix("%"))
-    except (TypeError, ValueError):
-        return None
-    return number if math.isfinite(number) else None
+    return str(value if value is not None else "").strip().lower() in PENDING_VALUES
 
 
 def _retention_reason(row: dict[str, Any]) -> str | None:
-    value = _t20_value(row)
-    if value is None:
-        return "观察中"
-    return "T+20非负" if value >= 0 else None
+    if not display_allowed(row):
+        return None
+    return "追踪中" if quote_current(row) else "待更新"
 
 
 def _true(value: Any) -> bool:
@@ -174,10 +157,9 @@ def prepare_email_data(changes: list[dict[str, Any]], history: list[dict[str, st
     filtered_changes = [item for item in changes if timeframe_label(item["record"]) is not None]
     new_changes = [item for item in filtered_changes if bool(item.get("new_signal"))]
     update_changes = [item for item in filtered_changes if not bool(item.get("new_signal"))]
-    eliminated_count = sum(
-        "return_20d" in item.get("milestones", ()) and _retention_reason(item["record"]) is None
-        for item in filtered_changes
-    )
+    eliminated_count = len(filtered_history) - len(display_history)
+    checked_at = max((row.get("quote_checked_at") or "" for row in history), default="")
+    updated_count = sum(row.get("quote_checked_at") == checked_at and quote_current(row) for row in filtered_history) if checked_at else len(update_changes)
     return EmailData(
         new_changes=_sort_changes(new_changes, updates=False),
         update_changes=_sort_changes(update_changes, updates=True),
@@ -186,6 +168,8 @@ def prepare_email_data(changes: list[dict[str, Any]], history: list[dict[str, st
         eliminated_count=eliminated_count,
         strong_count=sum(row.get("strong_sector") == "是" for row in filtered_history),
         non_strong_count=sum(row.get("strong_sector") == "否" for row in filtered_history),
+        performance_update_count=updated_count,
+        all_history=tuple(history),
     )
 
 
@@ -259,10 +243,12 @@ def _update_date_cell(row: dict[str, Any]) -> str:
 
 
 def _latest_performance(row: dict[str, Any]) -> str:
-    for field in reversed(MILESTONE_FIELDS):
-        if not _pending(row.get(field)):
-            return f"{_label(field)} {_pct(row.get(field))}"
-    return "—"
+    value = number(row.get("latest_return"))
+    if value is None:
+        return "—"
+    color = "#16803c" if value >= 0 else "#c62828"
+    suffix = " 待更新" if not quote_current(row) else ""
+    return f'<span style="color:{color};font-weight:600;">{_pct(value)}</span>{suffix}'
 
 
 def _strong(value: Any) -> str:
@@ -286,7 +272,7 @@ SUMMARY_HEAD = "border:1px solid #e3e6ea;padding:4px 3px;text-align:center;verti
 SUMMARY_VALUE = "border:1px solid #e3e6ea;padding:4px 3px;text-align:center;vertical-align:middle;font-size:13px;line-height:1.2;font-weight:700;white-space:nowrap;"
 TABLE = "width:100%;max-width:100%;border-collapse:collapse;border-spacing:0;"
 NEW_TABLE = TABLE + "table-layout:fixed;"
-UPDATE_TABLE = TABLE + "min-width:600px;"
+UPDATE_TABLE = TABLE + "table-layout:fixed;"
 SUMMARY_TABLE = TABLE + "table-layout:fixed;"
 
 
@@ -299,27 +285,26 @@ def _th(value: str, style: str = HEAD) -> str:
 
 
 def _summary_table(data: EmailData) -> str:
-    headers = ("本次新增", "绩效更新", "强势板块", "非强势板块")
-    values = (len(data.new_changes), len(data.update_changes), data.strong_count, data.non_strong_count)
-    return (
-        f'<table style="{SUMMARY_TABLE}" aria-label="邮件汇总"><thead><tr>'
-        + "".join(_th(item, SUMMARY_HEAD) for item in headers)
-        + "</tr></thead><tbody><tr>"
-        + "".join(_td(value, SUMMARY_VALUE) for value in values)
-        + "</tr></tbody></table>"
-    )
+    stats = strategy_statistics(list(data.display_history))
+    headers = ("本次新增", "绩效更新", "当前展示", "展示盈利", "展示亏损", "展示均收", "满月负收益隐藏", "数据待更新")
+    values = (len(data.new_changes), data.performance_update_count, len(data.display_history), stats["profit"],
+              stats["loss"], _pct(stats["average_return"]), data.eliminated_count,
+              sum(not quote_current(r) for r in data.display_history))
+    groups = []
+    for offset in (0, 4):
+        groups.append("<tr>" + "".join(_th(x, SUMMARY_HEAD) for x in headers[offset:offset+4]) + "</tr>")
+        groups.append("<tr>" + "".join(_td(x, SUMMARY_VALUE) for x in values[offset:offset+4]) + "</tr>")
+    return f'<table style="{SUMMARY_TABLE}" aria-label="邮件展示统计"><tbody>' + "".join(groups) + "</tbody></table>"
 
 
 def _retention_summary(data: EmailData) -> str:
-    return (
-        '<p aria-label="历史留存汇总" style="margin:6px 0 0;font-size:13px;line-height:1.35;color:#5f6368;">'
-        f"历史留存：{len(data.display_history)}｜观察中：{data.observing_count}｜"
-        f"T+20非负：{data.nonnegative_count}｜本次淘汰：{data.eliminated_count}</p>"
-    )
+    dates = sorted({str(r.get("price_as_of")) for r in data.display_history if r.get("price_as_of")})
+    cutoff = "—" if not dates else dates[0] if len(dates) == 1 else f"{dates[0]}～{dates[-1]}"
+    return f'<p style="margin:6px 0 0;font-size:11px;color:#5f6368;">行情截至 {cutoff} · 展示统计含待更新记录的上次有效收益</p>'
 
 
 def _new_table(data: EmailData) -> str:
-    headers = ("代码", "周期", "信号日", "推送价", "板块", "强势", "最新绩效")
+    headers = ("代码", "周期", "信号日", "推进价", "板块", "强势", "最新绩效")
     rows: list[str] = []
     for change in data.new_changes:
         row = change["record"]
@@ -350,43 +335,31 @@ def _new_table(data: EmailData) -> str:
 
 
 def _update_table(data: EmailData) -> str:
-    fields = MILESTONE_FIELDS
-    headers = ("代码", "信号日", "推送价", *(_label(field) for field in fields), "留存原因")
+    headers = ("代码", "周期", "信号日", "推进价", "最新价", "跟踪天数", "最新收益", "状态")
     rows: list[str] = []
-    by_recency = sorted(
-        data.display_history,
-        key=lambda row: (
-            str(row.get("last_updated") or ""),
-            str(row.get("signal_date") or ""),
-            str(row.get("signal_time") or ""),
-        ),
-        reverse=True,
-    )
-    history_rows = sorted(by_recency, key=lambda row: TIMEFRAME_ORDER[timeframe_label(row) or "日线"])
+    history_rows = sorted(data.display_history, key=lambda r: (number(r.get("latest_return")) is not None,
+                           number(r.get("latest_return")) if number(r.get("latest_return")) is not None else float("-inf")), reverse=True)
+    cell = "border-bottom:1px solid #e3e6ea;padding:7px 1px;text-align:center;vertical-align:middle;font-size:10.5px;line-height:1.35;overflow-wrap:break-word;"
     for row in history_rows:
         symbol = html.escape(str(row.get("symbol") or "—"))
-        timeframe = timeframe_label(row) or "—"
-        cells = [
-            _td(f'<strong>{symbol}</strong><br><span style="{UPDATE_TIMEFRAME}">{timeframe}</span>', UPDATE_NOWRAP),
-            _td(_update_date_cell(row), UPDATE_NOWRAP),
-            _td(_price(row.get("push_price") or row.get("signal_price")), UPDATE_NOWRAP),
-        ]
-        cells.extend(_td(_pct(row.get(field)), MILESTONE_CELL) for field in fields)
-        cells.append(_td(_retention_reason(row) or "—", UPDATE_NOWRAP))
-        rows.append("<tr>" + "".join(cells) + "</tr>")
+        status = _retention_reason(row) or "—"
+        detail = html.escape(str(row.get("quote_error") or ""))
+        as_of = html.escape(str(row.get("price_as_of") or "—"))
+        values = [f'<strong>{symbol}</strong>', timeframe_label(row) or "—", _date(row.get("signal_date")),
+                  _price(row.get("push_price") or row.get("signal_price")), _price(row.get("latest_price")),
+                  f'T+{row["tracking_sessions"]}' if str(row.get("tracking_sessions", "")) != "" else "—",
+                  _latest_performance(row), f'<span title="{detail}">{status}</span><br><small>{as_of}</small>']
+        rows.append("<tr>" + "".join(_td(x, cell) for x in values) + "</tr>")
     if not rows:
-        rows.append(f'<tr><td colspan="{len(headers)}" style="{CELL}text-align:center;color:#666;">—</td></tr>')
-    return (
-        f'<table style="{UPDATE_TABLE}" aria-label="历史绩效更新"><thead><tr>'
-        + "".join(_th(item, UPDATE_HEAD) for item in headers)
-        + "</tr></thead><tbody>"
-        + "".join(rows)
-        + "</tbody></table>"
-    )
+        rows.append(f'<tr><td colspan="8" style="{CELL}text-align:center;">—</td></tr>')
+    columns = "".join(f'<col style="width:{width}%;">' for width in (10, 7, 10, 13, 13, 10, 13, 14))
+    return (f'<table style="{UPDATE_TABLE}" aria-label="历史绩效更新"><colgroup>{columns}</colgroup><thead><tr>'
+            + "".join(_th(x, cell + "font-weight:600;background:#f5f7f9;") for x in headers)
+            + "</tr></thead><tbody>" + "".join(rows) + "</tbody></table>")
 
 
 def build_subject(data: EmailData) -> str:
-    return f"【美股信号】新增 {len(data.new_changes)}｜更新 {len(data.update_changes)}"
+    return f"【美股信号】新增 {len(data.new_changes)}｜更新 {data.performance_update_count}"
 
 
 def build_body(data: EmailData) -> str:
@@ -412,3 +385,4 @@ def build_body(data: EmailData) -> str:
 </body>
 </html>
 """
+
