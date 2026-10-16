@@ -313,8 +313,8 @@ def _new_table(data: EmailData) -> str:
         cells = (
             _td(f"<strong>{symbol}</strong>", NEW_NOWRAP),
             _td(timeframe_label(row) or "—", NEW_NOWRAP),
-            _td(_date_cell(row), NEW_NOWRAP),
-            _td(_price(row.get("push_price") or row.get("signal_price")), NEW_NOWRAP),
+            _td(f'<span title="{_date_cell(row)}">{_date(row.get("signal_date"))}</span>', NEW_NOWRAP),
+            _td(_price(row.get("push_price") or row.get("signal_price")), NEW_NOWRAP + "font-size:10.5px;"),
             _td(sector, SECTOR_CELL),
             _td(_strong(row.get("strong_sector")), NEW_NOWRAP),
             _td(_latest_performance(row), NEW_NOWRAP),
