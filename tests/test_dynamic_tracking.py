@@ -208,3 +208,21 @@ def test_missing_session_does_not_shift_milestone_dates():
     prices=frame().drop(frame().index[3])
     with pytest.raises(ValueError,match="交易日行情不完整"):
         dynamic_quote(prices,row(),CUTOFF)
+
+
+def test_yfinance_repair_optional_dependency_is_installed():
+    from scipy import stats
+    assert stats.norm.cdf(0) == 0.5
+
+
+@pytest.mark.parametrize("rows,expected", [([], 0), ([row(quote_status="pending")], None),
+                                        ([row(quote_status="pending"), row()], 1)])
+def test_refresh_health_rejects_all_failed_quotes_without_modifying_history(rows, expected):
+    from dynamic_tracking import verify_refresh_health
+    before = copy.deepcopy(rows)
+    if expected is None:
+        with pytest.raises(RuntimeError, match="No historical quotes refreshed"):
+            verify_refresh_health(rows)
+    else:
+        assert verify_refresh_health(rows) == expected
+    assert rows == before
