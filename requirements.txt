@@ -5,3 +5,5 @@ lxml>=5,<7
 html5lib>=1.1,<2
 beautifulsoup4>=4.12,<5
 pytest>=8,<9
+
+exchange-calendars>=4.5,<5

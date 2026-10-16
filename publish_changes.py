@@ -25,6 +25,7 @@ from typing import Any
 
 import sector_map
 import tracker
+from dynamic_tracking import DYNAMIC_FIELDS
 
 
 class PublishConflict(RuntimeError):
@@ -39,7 +40,7 @@ _DATA_FILES = (
     "data/sector_snapshots.csv",
     "data/sector_metadata_cache.json",
 )
-_REPORTS = ("output/tracker_report.csv", "output/tracker_report.txt")
+_REPORTS = ("output/tracker_report.csv", "output/tracker_report.txt", "output/test_email_preview.html")
 _RESOLVABLE = set(_DATA_FILES) | set(_REPORTS)
 _TERMINAL_EFFECTIVENESS = {"有效", "无效", "中性", "无法判定"}
 _REF_NAME = re.compile(r"[A-Za-z0-9._/-]+")
@@ -114,6 +115,8 @@ def _merge_effectiveness(signal_id: str, base: str, upstream: str, local: str) -
 
 
 def _merge_value(signal_id: str, field: str, base: str, upstream: str, local: str) -> str:
+    if field == "sessions_observed" and upstream and local:
+        return str(max(int(float(upstream)), int(float(local))))
     if field == "last_updated":
         return _merge_timestamp(signal_id, base, upstream, local)
     if field == "effectiveness":
@@ -152,7 +155,22 @@ def merge_history_rows(base: list[dict[str, str]], upstream: list[dict[str, str]
         remote = upstream_rows.get(signal_id, {})
         ours = local_rows.get(signal_id, {})
         if remote and ours:
-            merged.append({field: _merge_value(signal_id, field, _norm(current.get(field)), _norm(remote.get(field)), _norm(ours.get(field))) for field in HISTORY_FIELDS})
+            dynamic = set(DYNAMIC_FIELDS)
+            row = {field: _merge_value(signal_id, field, _norm(current.get(field)), _norm(remote.get(field)), _norm(ours.get(field))) for field in HISTORY_FIELDS if field not in dynamic}
+            # Latest attempt owns status; newest valid quote owns the price bundle.
+            newest = max((remote, ours), key=lambda r: str(r.get("quote_checked_at") or ""))
+            quote = max((remote, ours), key=lambda r: (str(r.get("price_as_of") or ""), str(r.get("quote_checked_at") or "")))
+            for field in dynamic:
+                row[field] = _norm((newest if field in {"quote_status", "quote_error", "quote_checked_at", "display_state"} else quote).get(field))
+            events = []
+            for source in (current, remote, ours):
+                for event in json.loads(source.get("visibility_events") or "[]"):
+                    if event not in events:
+                        events.append(event)
+            if events:
+                events.sort(key=lambda e: str(e.get("checked_at") or ""))
+                row["visibility_events"] = json.dumps(events, ensure_ascii=False, separators=(",", ":"))
+            merged.append(row)
         elif remote:
             merged.append(_canon_history_row(remote))
         elif ours:
@@ -399,6 +417,7 @@ def _regenerate_reports(repo: Path, history: list[dict[str, str]]) -> None:
     tracker.REPORT_TXT = repo / "output" / "tracker_report.txt"
     try:
         tracker.write_reports(history)
+        (repo / "output" / "test_email_preview.html").write_text(tracker.build_body(tracker.prepare_email_data([], history)), encoding="utf-8")
     finally:
         tracker.REPORT_CSV, tracker.REPORT_TXT = previous
 
@@ -564,3 +583,4 @@ def main(argv: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
+
