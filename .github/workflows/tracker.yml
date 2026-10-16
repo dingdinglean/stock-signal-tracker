@@ -9,7 +9,7 @@ on:
         type: boolean
         default: false
       preview_email:
-        description: "Send the committed HTML email style preview only"
+        description: "Send current history HTML email preview only"
         required: false
         type: boolean
         default: false
@@ -58,7 +58,7 @@ jobs:
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: python tracker.py --test-email
 
-      - name: Send tracker HTML style preview
+      - name: Send tracker current-history HTML preview
         if: ${{ inputs.preview_email == true }}
         env:
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
@@ -102,6 +102,7 @@ jobs:
           path: |
             output/tracker_report.csv
             output/tracker_report.txt
+            output/test_email_preview.html
           if-no-files-found: warn
 
       - name: Retry tracker report artifact upload
@@ -116,6 +117,7 @@ jobs:
           path: |
             output/tracker_report.csv
             output/tracker_report.txt
+            output/test_email_preview.html
           if-no-files-found: warn
 
       - name: Warn when both artifact uploads fail
@@ -126,3 +128,4 @@ jobs:
           else
             echo "::warning::Artifact upload failed after retry."
           fi
+
