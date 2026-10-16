@@ -129,3 +129,15 @@ jobs:
             echo "::warning::Artifact upload failed after retry."
           fi
 
+
+      - name: Verify history refresh health
+        if: ${{ inputs.test_email != true && inputs.preview_email != true }}
+        run: |
+          python - <<'PY'
+          import csv
+          from dynamic_tracking import verify_refresh_health
+          with open("data/signal_history.csv", encoding="utf-8-sig", newline="") as stream:
+              rows = list(csv.DictReader(stream))
+          print(f"Latest quotes refreshed: {verify_refresh_health(rows)}/{len(rows)}")
+          PY
+
