@@ -153,3 +153,10 @@ def strategy_statistics(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "profit": profit, "loss": loss, "flat": sum(x == 0 for x in values),
             "win_rate": profit / len(values) * 100 if values else None,
             "average_return": sum(values) / len(values) if values else None}
+
+
+def verify_refresh_health(rows: list[dict[str, Any]]) -> int:
+    refreshed = sum(quote_current(row) for row in rows)
+    if rows and not refreshed:
+        raise RuntimeError("No historical quotes refreshed; records retained as pending, inspect quote_error before retrying")
+    return refreshed
