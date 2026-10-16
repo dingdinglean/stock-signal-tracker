@@ -8,6 +8,7 @@ import pytest
 import tracker
 from email_sender import EmailDeliveryError, send_email
 from notifications import build_body, build_subject, changes_between, prepare_email_data, timeframe_label
+from dynamic_tracking import latest_completed_session
 from performance import calculate_performance
 
 
@@ -160,7 +161,7 @@ def test_same_signal_id_is_not_duplicated():
 
 def _event(symbol="AMD"):
     item = {field: "" for field in tracker.HISTORY_FIELDS}
-    item.update({"symbol": symbol, "signal_date": "2026-09-08", "strong_sector": "", "effectiveness": "pending"})
+    item.update({"symbol": symbol, "signal_date": "2026-09-08", "strong_sector": "", "effectiveness": "pending", "price_as_of": latest_completed_session().isoformat()})
     return item
 
 
@@ -239,7 +240,7 @@ def test_zero_history_writes_normal_report(tmp_path, monkeypatch):
 
 def _notification_row(signal_id="one", **updates):
     row = {field: "" for field in tracker.HISTORY_FIELDS}
-    row.update({"signal_id": signal_id, "symbol": "AMD", "signal_date": "2026-09-08", "signal_price": "100", "source_timeframe": "daily", "daily_dxdx": "True", "sector_theme": "半导体", "strong_sector": "是", "effectiveness": "pending"})
+    row.update({"signal_id": signal_id, "symbol": "AMD", "signal_date": "2026-09-08", "signal_price": "100", "source_timeframe": "daily", "daily_dxdx": "True", "sector_theme": "半导体", "strong_sector": "是", "effectiveness": "pending", "price_as_of": latest_completed_session().isoformat()})
     row.update(updates)
     return row
 
@@ -273,12 +274,13 @@ def test_existing_milestone_does_not_repeat_notification():
 
 def test_multiple_changes_for_one_signal_render_once():
     old = _notification_row()
-    new = _notification_row(return_1d="1.2", return_5d="3.8", effectiveness="有效")
+    new = _notification_row(return_1d="1.2", return_5d="3.8", latest_return="4.2", quote_status="ok", effectiveness="有效")
     changes = changes_between([old], [new])
     body = build_body(prepare_email_data(changes, [new]))
     assert len(changes) == 1
     assert body.count("<strong>AMD</strong>") == 1
-    assert "日线" in body and "T+1" in body and "+1.2%" in body and "T+5" in body and "+3.8%" in body
+    assert "日线" in body and "+4.2%" in body
+    assert "T+1" not in body and "T+5" not in body
 
 
 def test_multiple_signal_changes_are_combined_into_one_body():
@@ -374,13 +376,14 @@ def test_email_formats_price_empty_values_dates_and_latest_performance():
         strong_sector="",
         return_1d="1.2",
         return_3d="pending",
+        latest_return="1.2", quote_status="ok",
     )
     change = {"record": row, "new_signal": True, "milestones": [], "effectiveness": False}
     body = build_body(prepare_email_data([change], [row]))
     assert "$26.15" in body
     assert "09/10→09/11" in body
     assert "信号 09/10" not in body and "推送 09/11" not in body
-    assert "T+1 +1.2%" in body
+    assert "+1.2%" in body and "T+1 +1.2%" not in body
     assert "板块排名" not in body
     assert "—" in body
 
@@ -396,7 +399,7 @@ def test_email_tables_are_complete_and_sort_by_period_then_recency():
     body = build_body(prepare_email_data(changes, rows))
     assert body.lower().startswith("<!doctype html>")
     assert body.count("<table ") == 3
-    assert body.count("<thead>") == body.count("</thead>") == 3
+    assert body.count("<thead>") == body.count("</thead>") == 2
     assert body.count("<tbody>") == body.count("</tbody>") == 3
     assert body.count("<tr>") == body.count("</tr>")
     assert body.index("DAYNEW") < body.index("DAYOLD") < body.index("WEEK") < body.index("MONTH")
@@ -404,20 +407,22 @@ def test_email_tables_are_complete_and_sort_by_period_then_recency():
     assert "overflow-wrap:anywhere" not in body
     assert "word-break:normal;overflow-wrap:break-word" in body
     assert '<col style="width:28%;">' in body
-    assert "min-width:600px" in body
-    assert all(label in body for label in ("T+1", "T+3", "T+5", "T+10", "T+20"))
+    assert "min-width:600px" not in body
+    assert all(f">{label}</th>" not in body for label in ("T+1", "T+3", "T+5", "T+10", "T+20"))
 
 
-def test_performance_updates_sort_by_period_then_last_updated():
+def test_performance_updates_sort_by_latest_dynamic_return():
     rows = [
         _notification_row("week", symbol="WEEKUP", source_timeframe="weekly", last_updated="2026-09-19T12:00:00+00:00"),
         _notification_row("day-old", symbol="DAYUPO", source_timeframe="daily", last_updated="2026-09-19T08:00:00+00:00"),
         _notification_row("day-new", symbol="DAYUPN", source_timeframe="daily", last_updated="2026-09-19T10:00:00+00:00"),
         _notification_row("month", symbol="MONTHUP", source_timeframe="monthly", last_updated="2026-09-19T13:00:00+00:00"),
     ]
+    for row, value in zip(rows, [10, 8, 5, 1]):
+        row.update(latest_return=str(value), quote_status="ok")
     changes = [{"record": row, "new_signal": False, "milestones": ["return_1d"], "effectiveness": False} for row in rows]
     body = build_body(prepare_email_data(changes, rows))
-    assert body.index("DAYUPN") < body.index("DAYUPO") < body.index("WEEKUP") < body.index("MONTHUP")
+    assert body.index("WEEKUP") < body.index("DAYUPO") < body.index("DAYUPN") < body.index("MONTHUP")
 
 
 def test_history_table_renders_all_formal_history_not_only_updated_rows():
@@ -450,64 +455,31 @@ def test_history_table_renders_all_formal_history_not_only_updated_rows():
     assert all(f"H{index}" in history_body for index in range(9))
 
 
-@pytest.mark.parametrize(
-    ("symbol", "return_10d", "return_20d", "displayed", "reason"),
-    [
-        ("PENDING_NONE", "", None, True, "观察中"),
-        ("PENDING_DASH", "", "—", True, "观察中"),
-        ("POSITIVE", "", "+5%", True, "T+20非负"),
-        ("ZERO", "", "0%", True, "T+20非负"),
-        ("NEGATIVE", "", "-0.1%", False, None),
-        ("EARLY_LOSS", "-20", "", True, "观察中"),
-    ],
-)
-def test_history_retention_uses_only_final_t20(symbol, return_10d, return_20d, displayed, reason):
-    row = _notification_row(symbol, symbol=symbol, return_10d=return_10d, return_20d=return_20d)
+@pytest.mark.parametrize("value,displayed", [(None, True), ("—", True), ("5", True), ("0", True), ("-0.1", False)])
+def test_history_retention_uses_dynamic_return_instead_of_t20(value, displayed):
+    row = _notification_row("TEST", symbol="TEST", signal_date="2020-01-01", return_20d="-20", latest_return=value, quote_status="ok")
     data = prepare_email_data([], [row])
-    body = build_body(data)
-    history_table = body.split('aria-label="历史绩效更新"', 1)[1].split("</table>", 1)[0]
-
     assert row in data.history
     assert (row in data.display_history) is displayed
-    assert (symbol in history_table) is displayed
-    if reason:
-        assert reason in history_table
+    assert ("TEST" in build_body(data)) is displayed
 
 
-def test_retention_summary_counts_first_elimination_only_once():
-    pending = _notification_row("pending", symbol="PENDING", return_20d="")
-    positive = _notification_row("positive", symbol="POSITIVE", return_20d="5")
-    zero = _notification_row("zero", symbol="ZERO", return_20d="0")
-    old_negative = _notification_row("negative", symbol="NEGATIVE", return_20d="")
-    negative = _notification_row("negative", symbol="NEGATIVE", return_20d="-0.1")
-    history = [pending, positive, zero, negative]
-
-    first_changes = changes_between([old_negative], [negative])
-    first_data = prepare_email_data(first_changes, history)
-    first_body = build_body(first_data)
-
-    assert len(first_data.history) == 4
-    assert len(first_data.display_history) == 3
-    assert (first_data.observing_count, first_data.nonnegative_count, first_data.eliminated_count) == (1, 2, 1)
-    assert "历史留存：3｜观察中：1｜T+20非负：2｜本次淘汰：1" in first_body
-    assert build_subject(first_data) == "【美股信号】新增 0｜更新 1"
-    summary_table = first_body.split('aria-label="邮件汇总"', 1)[1].split("</table>", 1)[0]
-    assert "正式历史" not in summary_table
-    assert all(label in summary_table for label in ("本次新增", "绩效更新", "强势板块", "非强势板块"))
-
-    repeated_data = prepare_email_data(changes_between([negative], [dict(negative)]), history)
-    assert repeated_data.eliminated_count == 0
-
-    later_change = dict(negative, return_10d="1.2")
-    later_data = prepare_email_data(changes_between([negative], [later_change]), [pending, positive, zero, later_change])
-    assert len(later_data.update_changes) == 1
-    assert later_data.eliminated_count == 0
+def test_retention_summary_reports_current_hidden_count_on_every_report():
+    rows = [_notification_row(str(i), latest_return=v, quote_status="ok", signal_date="2020-01-01")
+            for i, v in enumerate(["5", "0", "-0.1"])]
+    data = prepare_email_data([], rows)
+    assert len(data.history) == 3 and len(data.display_history) == 2
+    assert data.eliminated_count == 1
+    assert prepare_email_data([], rows).eliminated_count == 1
+    body = build_body(data)
+    assert "邮件展示统计" in body
+    assert all(x in body for x in ("本次新增", "绩效更新", "当前展示", "展示盈利", "展示亏损", "展示均收", "满月负收益隐藏"))
 
 
 def test_email_retention_filter_does_not_remove_rows_from_history_file(tmp_path):
     history_path = tmp_path / "signal_history.csv"
-    retained = _notification_row("retained", symbol="RETAINED", return_20d="0")
-    eliminated = _notification_row("eliminated", symbol="ELIMINATED", return_20d="-0.1")
+    retained = _notification_row("retained", symbol="RETAINED", latest_return="0", quote_status="ok", signal_date="2020-01-01")
+    eliminated = _notification_row("eliminated", symbol="ELIMINATED", latest_return="-0.1", quote_status="ok", signal_date="2020-01-01")
     tracker._write_csv(history_path, [retained, eliminated], tracker.HISTORY_FIELDS)
 
     stored_history = tracker._read_csv(history_path)
@@ -518,7 +490,7 @@ def test_email_retention_filter_does_not_remove_rows_from_history_file(tmp_path)
     assert {row["signal_id"] for row in tracker._read_csv(history_path)} == {"retained", "eliminated"}
 
 
-def test_performance_update_table_combines_period_with_symbol_and_compacts_dates():
+def test_performance_update_table_has_eight_dynamic_columns_and_original_signal_date():
     rows = [
         _notification_row("same", symbol="SAME", source_timeframe="daily", signal_date="2026-09-18", push_date="2026-09-18"),
         _notification_row("same-month", symbol="SMON", source_timeframe="weekly", signal_date="2026-09-16", push_date="2026-09-18"),
@@ -529,14 +501,12 @@ def test_performance_update_table_combines_period_with_symbol_and_compacts_dates
     body = build_body(prepare_email_data(changes, rows))
     history_table = body.split('aria-label="历史绩效更新"', 1)[1]
 
-    assert "09/18" in history_table
-    assert "09/16→18" in history_table
-    assert "08/31→09/02" in history_table
-    assert "26/12/31→27/01/02" in history_table
-    assert "<strong>SMON</strong><br><span" in history_table and ">周线</span>" in history_table
-    assert ">周期</th>" not in history_table
-    assert ">留存原因</th>" in history_table
-    assert all(label in history_table for label in ("T+1", "T+3", "T+5", "T+10", "T+20"))
+    assert all(x in history_table for x in ("09/18", "09/16", "08/31", "12/31"))
+    assert "→" not in history_table
+    assert ">周线</td>" in history_table
+    assert ">周期</th>" in history_table and ">状态</th>" in history_table
+    assert all(f">{x}</th>" in history_table for x in ("最新价", "最新收益", "跟踪天数", "推进价"))
+    assert all(f">{x}</th>" not in history_table for x in ("T+1", "T+3", "T+5", "T+10", "T+20"))
 
 
 def test_test_email_only_does_not_run_tracker(monkeypatch):
@@ -547,7 +517,7 @@ def test_test_email_only_does_not_run_tracker(monkeypatch):
     assert sent == [True]
 
 
-def test_preview_email_only_sends_committed_html_without_running_tracker(monkeypatch, tmp_path):
+def test_preview_email_renders_current_ledger_without_running_tracker(monkeypatch, tmp_path):
     preview = tmp_path / "test_email_preview.html"
     preview.write_text("<!doctype html><html><body>TEST preview</body></html>", encoding="utf-8")
     sent = []
@@ -558,7 +528,8 @@ def test_preview_email_only_sends_committed_html_without_running_tracker(monkeyp
 
     tracker.main(["--preview-email"])
 
-    assert sent == [("【TEST】美股信号 HTML 样式预览", preview.read_text(encoding="utf-8"))]
+    assert len(sent) == 1 and sent[0][0] == "【TEST】美股信号 HTML 样式预览"
+    assert "最新收益" in sent[0][1] and "TEST preview" not in sent[0][1]
 
 
 def test_smtp_failure_is_raised(monkeypatch):
@@ -629,3 +600,4 @@ def test_only_4h_changes_do_not_send_email(monkeypatch, tmp_path):
     monkeypatch.setattr(tracker, "send_email", lambda *args: sent.append(args))
     tracker.main([])
     assert sent == []
+
