@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 
 import tracker
+import dynamic_tracking
 from dynamic_tracking import (display_allowed, dynamic_quote, latest_completed_session,
                               mark_visibility, market_calendar, month_anniversary,
                               strategy_statistics, trading_days)
@@ -16,6 +17,16 @@ from publish_changes import merge_history_rows
 
 NOW = datetime(2026, 10, 16, 5, tzinfo=timezone.utc)
 CUTOFF = date(2026, 10, 15)
+
+
+@pytest.fixture(autouse=True)
+def fixed_clock(monkeypatch):
+    # Scheduled CI must remain deterministic after these sample signal dates.
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return NOW.astimezone(tz) if tz else NOW.replace(tzinfo=None)
+    monkeypatch.setattr(dynamic_tracking, "datetime", Clock)
 
 
 def row(**updates):
