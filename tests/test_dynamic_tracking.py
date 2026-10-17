@@ -215,14 +215,44 @@ def test_yfinance_repair_optional_dependency_is_installed():
     assert stats.norm.cdf(0) == 0.5
 
 
-@pytest.mark.parametrize("rows,expected", [([], 0), ([row(quote_status="pending")], None),
-                                        ([row(quote_status="pending"), row()], 1)])
-def test_refresh_health_rejects_all_failed_quotes_without_modifying_history(rows, expected):
+@pytest.mark.parametrize("statuses,expected", [([], 0), (["pending"], None),
+                                            (["pending", "ok"], 1)])
+def test_refresh_health_rejects_all_failed_quotes_without_modifying_history(statuses, expected):
     from dynamic_tracking import verify_refresh_health
+    # Construct dated samples after fixed_clock runs, never at collection time.
+    rows = [row(quote_status=status) for status in statuses]
     before = copy.deepcopy(rows)
     if expected is None:
         with pytest.raises(RuntimeError, match="No historical quotes refreshed"):
             verify_refresh_health(rows)
     else:
         assert verify_refresh_health(rows) == expected
+    assert rows == before
+
+
+@pytest.mark.parametrize("now,cutoff", [
+    (datetime(2026, 10, 16, 5, tzinfo=timezone.utc), "2026-10-15"),
+    (datetime(2026, 10, 17, 5, tzinfo=timezone.utc), "2026-10-16"),
+    (datetime(2026, 10, 18, 5, tzinfo=timezone.utc), "2026-10-16"),
+    (datetime(2026, 10, 19, 5, tzinfo=timezone.utc), "2026-10-16"),
+])
+def test_refresh_health_tracks_session_rollover_and_rejects_stale_ok(monkeypatch, now, cutoff):
+    from dynamic_tracking import verify_refresh_health
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now.astimezone(tz) if tz else now.replace(tzinfo=None)
+
+    monkeypatch.setattr(dynamic_tracking, "datetime", Clock)
+    rows = [row(price_as_of="2026-10-14"), row(quote_status="pending")]
+    before = copy.deepcopy(rows)
+    with pytest.raises(RuntimeError, match="No historical quotes refreshed"):
+        verify_refresh_health(rows)
+    assert rows == before
+    fresh = row()
+    assert fresh["price_as_of"] == cutoff
+    rows.append(fresh)
+    before = copy.deepcopy(rows)
+    assert verify_refresh_health(rows) == 1
     assert rows == before
