@@ -1,26 +1,26 @@
 【美股信号验证器】
-历史正式推送总数：34
-已成熟10日信号数：26
+历史正式推送总数：49
+已成熟10日信号数：27
 强势板块内信号数：0
-非强势板块信号数：30
+非强势板块信号数：45
 
 基准：实际推送时冻结的 push_price；T+N 为 push_date 后第 N 个实际交易日收盘价。
 有效性：10 个交易日内，先触及 +5% 为有效；先触及 -5% 为无效；同日双触及为无法判定。
 
 最近具体推送：
-ALLE｜日/4H｜信号K 2026-10-13｜推送 2026-10-14｜价 153.1699981689453｜其他（Building Products）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-VST｜周线｜信号K 2026-10-09｜推送 2026-10-09｜价 161.47999572753906｜其他（Electric Utilities）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-STZ｜周线｜信号K 2026-10-09｜推送 2026-10-09｜价 122.63999938964844｜其他（Distillers & Vintners）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-ORLY｜周线｜信号K 2026-10-09｜推送 2026-10-09｜价 86.44999694824219｜其他（Automotive Retail）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-DPZ｜周线｜信号K 2026-10-09｜推送 2026-10-09｜价 309.3599853515625｜其他（Restaurants）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-AZO｜周线｜信号K 2026-10-09｜推送 2026-10-09｜价 2939.85009765625｜其他（Automotive Retail）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-MMM｜日/4H｜信号K 2026-10-08｜推送 2026-10-09｜价 163.5800018310547｜其他（Industrial Conglomerates）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-RCL｜周线｜信号K 2026-10-02｜推送 2026-10-02｜价 277.739990234375｜其他（Hotels, Resorts & Cruise Lines）｜排名 -｜强势 否｜T+5 1.627｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-SNPS｜周线｜信号K 2026-09-25｜推送 2026-09-25｜价 425.760009765625｜应用软件｜排名 -｜强势 否｜T+5 15.065｜T+10 19.783｜T+20 pending｜MFE10 20.371｜MAE10 -5.268｜无效
-JCI｜日/4H｜信号K 2026-09-17｜推送 2026-09-18｜价 141.05999755859375｜其他（Building Products）｜排名 -｜强势 否｜T+5 6.48｜T+10 10.761｜T+20 pending｜MFE10 11.265｜MAE10 1.333｜有效
-DOC｜日/4H｜信号K 2026-09-16｜推送 2026-09-18｜价 20.350000381469727｜其他（Health Care REITs）｜排名 -｜强势 否｜T+5 -0.197｜T+10 -4.226｜T+20 pending｜MFE10 2.604｜MAE10 -4.865｜中性
-CB｜4h｜信号K 2026-09-11｜推送 2026-09-11｜价 338.2699890136719｜其他（Property & Casualty Insurance）｜排名 -｜强势 否｜T+5 0.701｜T+10 -1.449｜T+20 0.866｜MFE10 1.848｜MAE10 -1.623｜中性
+TDG｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 1139.3399658203125｜航空航天｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+SYK｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 294.6700134277344｜医疗设备｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+OTIS｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 71.33999633789062｜其他（Industrial Machinery & Supplies & Components）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+NOC｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 519.760009765625｜航空航天｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+NKE｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 37.130001068115234｜其他（Apparel, Accessories & Luxury Goods）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+NFLX｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 70.54000091552734｜大型科技｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+LULU｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 97.08000183105469｜其他（Apparel, Accessories & Luxury Goods）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+IDXX｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 560.5｜医疗设备｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+IBM｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 232.1300048828125｜其他（IT Consulting & Other Services）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+HII｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 272.010009765625｜航空航天｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+HD｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 309.6600036621094｜消费｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+FIS｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 36.005001068115234｜其他（Transaction & Payment Processing Services）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 
 全部历史策略统计（包括邮件隐藏及4小时记录）：
-{"total": 34, "priced": 33, "fresh": 33, "profit": 21, "loss": 12, "flat": 0, "win_rate": 63.63636363636363, "average_return": 0.6414255778374709}
+{"total": 49, "priced": 48, "fresh": 48, "profit": 27, "loss": 19, "flat": 2, "win_rate": 56.25, "average_return": 0.5902924678218399}
 最新收益采用拆股、分红复权后的可比价 / 原始推送价；缺失数据不按0计，统计保留最后有效收益。
