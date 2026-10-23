@@ -22,5 +22,5 @@ HD｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 309.6600036621094｜�
 FIS｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 36.005001068115234｜其他（Transaction & Payment Processing Services）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 
 全部历史策略统计（包括邮件隐藏及4小时记录）：
-{"total": 49, "priced": 48, "fresh": 48, "profit": 31, "loss": 17, "flat": 0, "win_rate": 64.58333333333334, "average_return": 0.7683486894058397}
+{"total": 49, "priced": 48, "fresh": 48, "profit": 34, "loss": 14, "flat": 0, "win_rate": 70.83333333333334, "average_return": 2.204767810380309}
 最新收益采用拆股、分红复权后的可比价 / 原始推送价；缺失数据不按0计，统计保留最后有效收益。
