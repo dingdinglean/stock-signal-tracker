@@ -22,5 +22,5 @@ SYK｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 294.6700134277344｜
 OTIS｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 71.33999633789062｜其他（Industrial Machinery & Supplies & Components）｜排名 -｜强势 否｜T+5 5.341｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 
 全部历史策略统计（包括邮件隐藏及4小时记录）：
-{"total": 58, "priced": 57, "fresh": 57, "profit": 30, "loss": 18, "flat": 9, "win_rate": 52.63157894736842, "average_return": 0.7210093852879708}
+{"total": 58, "priced": 57, "fresh": 57, "profit": 34, "loss": 23, "flat": 0, "win_rate": 59.64912280701754, "average_return": 0.7806575227028504}
 最新收益采用拆股、分红复权后的可比价 / 原始推送价；缺失数据不按0计，统计保留最后有效收益。
