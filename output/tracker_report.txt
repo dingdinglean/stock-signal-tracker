@@ -1,13 +1,14 @@
 【美股信号验证器】
-历史正式推送总数：59
+历史正式推送总数：60
 已成熟10日信号数：34
 强势板块内信号数：0
-非强势板块信号数：55
+非强势板块信号数：56
 
 基准：实际推送时冻结的 push_price；T+N 为 push_date 后第 N 个实际交易日收盘价。
 有效性：10 个交易日内，先触及 +5% 为有效；先触及 -5% 为无效；同日双触及为无法判定。
 
 最近具体推送：
+WAB｜日/4H｜信号K 2026-10-28｜推送 2026-10-29｜价 282.17999267578125｜其他（Construction Machinery & Heavy Transportation Equipment）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 CSCO｜日/4H｜信号K 2026-10-26｜推送 2026-10-27｜价 110.23999786376953｜其他（Communications Equipment）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 XYL｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 108.73999786376953｜其他（Industrial Machinery & Supplies & Components）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 MKC｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 48.119998931884766｜其他（Packaged Foods & Meats）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
@@ -19,8 +20,7 @@ CPRT｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 29.0｜其他（Div
 COO｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 61.209999084472656｜其他（Health Care Supplies）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 CMCSA｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 22.690000534057617｜其他（Cable & Satellite）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 TDG｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 1139.3399658203125｜航空航天｜排名 -｜强势 否｜T+5 -3.028｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-SYK｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 294.6700134277344｜医疗设备｜排名 -｜强势 否｜T+5 4.235｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 
 全部历史策略统计（包括邮件隐藏及4小时记录）：
-{"total": 59, "priced": 58, "fresh": 58, "profit": 32, "loss": 26, "flat": 0, "win_rate": 55.172413793103445, "average_return": 0.2022647612783282}
+{"total": 60, "priced": 59, "fresh": 59, "profit": 38, "loss": 21, "flat": 0, "win_rate": 64.40677966101694, "average_return": 2.1024683798693324}
 最新收益采用拆股、分红复权后的可比价 / 原始推送价；缺失数据不按0计，统计保留最后有效收益。
