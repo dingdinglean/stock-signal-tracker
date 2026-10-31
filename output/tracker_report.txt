@@ -1,26 +1,26 @@
 【美股信号验证器】
-历史正式推送总数：60
-已成熟10日信号数：34
-强势板块内信号数：0
-非强势板块信号数：56
+历史正式推送总数：63
+已成熟10日信号数：49
+强势板块内信号数：1
+非强势板块信号数：58
 
 基准：实际推送时冻结的 push_price；T+N 为 push_date 后第 N 个实际交易日收盘价。
 有效性：10 个交易日内，先触及 +5% 为有效；先触及 -5% 为无效；同日双触及为无法判定。
 
 最近具体推送：
+TDG｜周线｜信号K 2026-10-30｜推送 2026-10-30｜价 1146.81005859375｜航空航天｜排名 2｜强势 是｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+CMG｜周线｜信号K 2026-10-30｜推送 2026-10-30｜价 31.889999389648438｜其他（Restaurants）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+CHTR｜周线｜信号K 2026-10-30｜推送 2026-10-30｜价 111.48999786376953｜其他（Cable & Satellite）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 WAB｜日/4H｜信号K 2026-10-28｜推送 2026-10-29｜价 282.17999267578125｜其他（Construction Machinery & Heavy Transportation Equipment）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 CSCO｜日/4H｜信号K 2026-10-26｜推送 2026-10-27｜价 110.23999786376953｜其他（Communications Equipment）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-XYL｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 108.73999786376953｜其他（Industrial Machinery & Supplies & Components）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-MKC｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 48.119998931884766｜其他（Packaged Foods & Meats）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-MAA｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 119.77999877929688｜其他（Multi-Family Residential REITs）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-HRL｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 21.059999465942383｜其他（Packaged Foods & Meats）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-GIS｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 34.38999938964844｜其他（Packaged Foods & Meats）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-FICO｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 815.3099975585938｜应用软件｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-CPRT｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 29.0｜其他（Diversified Support Services）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-COO｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 61.209999084472656｜其他（Health Care Supplies）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-CMCSA｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 22.690000534057617｜其他（Cable & Satellite）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-TDG｜周线｜信号K 2026-10-16｜推送 2026-10-16｜价 1139.3399658203125｜航空航天｜排名 -｜强势 否｜T+5 -3.028｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+XYL｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 108.73999786376953｜其他（Industrial Machinery & Supplies & Components）｜排名 -｜强势 否｜T+5 -15.027｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+MKC｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 48.119998931884766｜其他（Packaged Foods & Meats）｜排名 -｜强势 否｜T+5 -1.725｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+MAA｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 119.77999877929688｜其他（Multi-Family Residential REITs）｜排名 -｜强势 否｜T+5 -2.146｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+HRL｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 21.059999465942383｜其他（Packaged Foods & Meats）｜排名 -｜强势 否｜T+5 1.045｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+GIS｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 34.38999938964844｜其他（Packaged Foods & Meats）｜排名 -｜强势 否｜T+5 -0.291｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+FICO｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 815.3099975585938｜应用软件｜排名 -｜强势 否｜T+5 -12.766｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+CPRT｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 29.0｜其他（Diversified Support Services）｜排名 -｜强势 否｜T+5 3.897｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 
 全部历史策略统计（包括邮件隐藏及4小时记录）：
-{"total": 60, "priced": 59, "fresh": 59, "profit": 38, "loss": 21, "flat": 0, "win_rate": 64.40677966101694, "average_return": 2.1024683798693324}
+{"total": 63, "priced": 62, "fresh": 62, "profit": 35, "loss": 24, "flat": 3, "win_rate": 56.451612903225815, "average_return": 1.595132961415508}
 最新收益采用拆股、分红复权后的可比价 / 原始推送价；缺失数据不按0计，统计保留最后有效收益。
