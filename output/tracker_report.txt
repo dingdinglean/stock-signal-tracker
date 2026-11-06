@@ -14,7 +14,7 @@ CCI｜月线｜信号K 2026-10-31｜推送 2026-11-02｜价 87.02999877929688｜
 TDG｜周线｜信号K 2026-10-30｜推送 2026-10-30｜价 1146.81005859375｜航空航天｜排名 2｜强势 是｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 CMG｜周线｜信号K 2026-10-30｜推送 2026-10-30｜价 31.889999389648438｜其他（Restaurants）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 CHTR｜周线｜信号K 2026-10-30｜推送 2026-10-30｜价 111.48999786376953｜其他（Cable & Satellite）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-WAB｜日/4H｜信号K 2026-10-28｜推送 2026-10-29｜价 282.17999267578125｜其他（Construction Machinery & Heavy Transportation Equipment）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
+WAB｜日/4H｜信号K 2026-10-28｜推送 2026-10-29｜价 282.17999267578125｜其他（Construction Machinery & Heavy Transportation Equipment）｜排名 -｜强势 否｜T+5 -1.311｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 CSCO｜日/4H｜信号K 2026-10-26｜推送 2026-10-27｜价 110.23999786376953｜其他（Communications Equipment）｜排名 -｜强势 否｜T+5 -6.595｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 XYL｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 108.73999786376953｜其他（Industrial Machinery & Supplies & Components）｜排名 -｜强势 否｜T+5 -15.027｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 MKC｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 48.119998931884766｜其他（Packaged Foods & Meats）｜排名 -｜强势 否｜T+5 -1.725｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
@@ -22,5 +22,5 @@ MAA｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 119.77999877929688�
 HRL｜周线｜信号K 2026-10-23｜推送 2026-10-23｜价 21.059999465942383｜其他（Packaged Foods & Meats）｜排名 -｜强势 否｜T+5 1.045｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 
 全部历史策略统计（包括邮件隐藏及4小时记录）：
-{"total": 66, "priced": 65, "fresh": 65, "profit": 51, "loss": 14, "flat": 0, "win_rate": 78.46153846153847, "average_return": 5.870303866366854}
+{"total": 66, "priced": 65, "fresh": 65, "profit": 45, "loss": 20, "flat": 0, "win_rate": 69.23076923076923, "average_return": 3.8595362233843273}
 最新收益采用拆股、分红复权后的可比价 / 原始推送价；缺失数据不按0计，统计保留最后有效收益。
