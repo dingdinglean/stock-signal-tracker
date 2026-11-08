@@ -377,7 +377,6 @@
       "KMI",
       "KO",
       "KR",
-      "KVUE",
       "L",
       "LDOS",
       "LEN",
@@ -451,6 +450,7 @@
       "O",
       "ODFL",
       "OKE",
+      "OKTA",
       "OMC",
       "ON",
       "ORCL",
@@ -2400,6 +2400,11 @@
       "sector": "Energy",
       "sector_theme": "其他（Oil & Gas Storage & Transportation）"
     },
+    "OKTA": {
+      "industry": "Application Software",
+      "sector": "Information Technology",
+      "sector_theme": "应用软件"
+    },
     "OMC": {
       "industry": "Advertising",
       "sector": "Communication Services",
@@ -3216,5 +3221,5 @@
       "sector_theme": "其他（Pharmaceuticals）"
     }
   },
-  "updated_at": "2026-11-01T21:25:57.228021+00:00"
+  "updated_at": "2026-11-08T21:25:35.044088+00:00"
 }
