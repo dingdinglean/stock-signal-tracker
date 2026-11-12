@@ -22,5 +22,5 @@ CHTR｜周线｜信号K 2026-10-30｜推送 2026-10-30｜价 111.48999786376953�
 WAB｜日/4H｜信号K 2026-10-28｜推送 2026-10-29｜价 282.17999267578125｜其他（Construction Machinery & Heavy Transportation Equipment）｜排名 -｜强势 否｜T+5 -1.311｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 
 全部历史策略统计（包括邮件隐藏及4小时记录）：
-{"total": 71, "priced": 70, "fresh": 70, "profit": 53, "loss": 17, "flat": 0, "win_rate": 75.71428571428571, "average_return": 5.104834946485116}
+{"total": 71, "priced": 70, "fresh": 70, "profit": 53, "loss": 17, "flat": 0, "win_rate": 75.71428571428571, "average_return": 5.335375998840928}
 最新收益采用拆股、分红复权后的可比价 / 原始推送价；缺失数据不按0计，统计保留最后有效收益。
