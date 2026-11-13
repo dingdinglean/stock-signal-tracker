@@ -1,0 +1,566 @@
+{
+  "observed_from": "public GitHub Actions REST API; successful scan or run-radar jobs only",
+  "signal_runs": {
+    "34294931241": {
+      "created_at": "2026-09-09T00:25:13Z",
+      "run_started_at": "2026-09-09T00:25:13Z",
+      "updated_at": "2026-09-09T00:27:02Z",
+      "status": "completed",
+      "job_id": "102289376872",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-09T00:27:02Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "34375041300": {
+      "created_at": "2026-09-09T16:10:26Z",
+      "run_started_at": "2026-09-09T16:10:26Z",
+      "updated_at": "2026-09-09T16:13:58Z",
+      "status": "completed",
+      "job_id": "102545590080",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-09T16:13:58Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "34546016812": {
+      "created_at": "2026-09-11T00:19:39Z",
+      "run_started_at": "2026-09-11T00:19:39Z",
+      "updated_at": "2026-09-11T00:21:42Z",
+      "status": "completed",
+      "job_id": "103098676961",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-11T00:21:41Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "34661649194": {
+      "created_at": "2026-09-12T00:26:39Z",
+      "run_started_at": "2026-09-12T00:26:39Z",
+      "updated_at": "2026-09-12T00:39:04Z",
+      "status": "completed",
+      "job_id": "103465210732",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-12T00:39:04Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "35346335055": {
+      "created_at": "2026-09-18T12:45:07Z",
+      "run_started_at": "2026-09-18T12:45:07Z",
+      "updated_at": "2026-09-18T12:47:21Z",
+      "status": "completed",
+      "job_id": "105603671245",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-18T12:47:20Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "36208559318": {
+      "created_at": "2026-09-26T01:28:51Z",
+      "run_started_at": "2026-09-26T01:28:51Z",
+      "updated_at": "2026-09-26T01:38:15Z",
+      "status": "completed",
+      "job_id": "108310193444",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-26T01:38:14Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "37087751648": {
+      "created_at": "2026-10-03T01:52:39Z",
+      "run_started_at": "2026-10-03T01:52:39Z",
+      "updated_at": "2026-10-03T01:55:15Z",
+      "status": "completed",
+      "job_id": "111101443952",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-03T01:55:15Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "37948440001": {
+      "created_at": "2026-10-09T15:00:24Z",
+      "run_started_at": "2026-10-09T15:00:24Z",
+      "updated_at": "2026-10-09T15:02:32Z",
+      "status": "completed",
+      "job_id": "113880692060",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-09T15:02:31Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "38016335043": {
+      "created_at": "2026-10-10T02:16:05Z",
+      "run_started_at": "2026-10-10T02:16:05Z",
+      "updated_at": "2026-10-10T02:18:49Z",
+      "status": "completed",
+      "job_id": "114107310456",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-10T02:18:48Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "38570971569": {
+      "created_at": "2026-10-14T13:20:30Z",
+      "run_started_at": "2026-10-14T13:20:30Z",
+      "updated_at": "2026-10-14T13:22:48Z",
+      "status": "completed",
+      "job_id": "115875746983",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-14T13:22:47Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "38990074324": {
+      "created_at": "2026-10-17T01:15:26Z",
+      "run_started_at": "2026-10-17T01:15:26Z",
+      "updated_at": "2026-10-17T01:24:48Z",
+      "status": "completed",
+      "job_id": "117270280256",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-17T01:24:47Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "40050149664": {
+      "created_at": "2026-10-24T01:31:01Z",
+      "run_started_at": "2026-10-24T01:31:01Z",
+      "updated_at": "2026-10-24T01:33:44Z",
+      "status": "completed",
+      "job_id": "120740795727",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-24T01:33:44Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "40517279180": {
+      "created_at": "2026-10-27T14:01:45Z",
+      "run_started_at": "2026-10-27T14:01:45Z",
+      "updated_at": "2026-10-27T14:07:23Z",
+      "status": "completed",
+      "job_id": "122234107269",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-27T14:03:53Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "40896799654": {
+      "created_at": "2026-10-29T14:58:19Z",
+      "run_started_at": "2026-10-29T14:58:19Z",
+      "updated_at": "2026-10-29T15:00:30Z",
+      "status": "completed",
+      "job_id": "123528026064",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-29T15:00:30Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "41159223798": {
+      "created_at": "2026-10-31T02:16:12Z",
+      "run_started_at": "2026-10-31T02:16:12Z",
+      "updated_at": "2026-10-31T02:18:50Z",
+      "status": "completed",
+      "job_id": "124412799984",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-31T02:18:50Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "41574904236": {
+      "created_at": "2026-11-03T03:53:56Z",
+      "run_started_at": "2026-11-03T03:53:56Z",
+      "updated_at": "2026-11-03T03:56:37Z",
+      "status": "completed",
+      "job_id": "125716029438",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-11-03T03:56:36Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "41668323528": {
+      "created_at": "2026-11-03T15:52:16Z",
+      "run_started_at": "2026-11-03T15:52:16Z",
+      "updated_at": "2026-11-03T15:54:35Z",
+      "status": "completed",
+      "job_id": "126029573881",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-11-03T15:54:34Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "42330626324": {
+      "created_at": "2026-11-07T02:43:20Z",
+      "run_started_at": "2026-11-07T02:43:20Z",
+      "updated_at": "2026-11-07T02:45:21Z",
+      "status": "completed",
+      "job_id": "128276081449",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-11-07T02:45:20Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "43260511273": {
+      "created_at": "2026-11-12T16:36:27Z",
+      "run_started_at": "2026-11-12T16:36:27Z",
+      "updated_at": "2026-11-12T16:38:48Z",
+      "status": "completed",
+      "job_id": "131330182973",
+      "job_name": "scan",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-11-12T16:38:47Z",
+      "job_completed_source": "actions_job_completed_at"
+    }
+  },
+  "strength_runs": {
+    "34005617175": {
+      "job_id": "101412117655",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-06T02:07:37Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "34171395101": {
+      "job_id": "101892232596",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-07T23:51:39Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "34292004080": {
+      "job_id": "102280366905",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-08T23:45:12Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "34417913173": {
+      "job_id": "102686795763",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-09T23:40:16Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "34542648645": {
+      "job_id": "103088443957",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-10T23:33:35Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "34658970911": {
+      "job_id": "103457305598",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-11T23:41:25Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "34911637943": {
+      "job_id": "104200203748",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-15T00:05:13Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "35037345006": {
+      "job_id": "104609309759",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-15T23:49:42Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "35164557272": {
+      "job_id": "105022618733",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-16T23:58:38Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "35288381786": {
+      "job_id": "105425657149",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-17T23:47:54Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "35406840862": {
+      "job_id": "105798235740",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-18T23:44:48Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "35671724529": {
+      "job_id": "106569451495",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-22T00:23:34Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "35799634036": {
+      "job_id": "106986770288",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-22T23:55:06Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "35936854222": {
+      "job_id": "107435694797",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-24T00:07:12Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "36076159285": {
+      "job_id": "107887704946",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-25T00:09:10Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "36204141130": {
+      "job_id": "108296923676",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-26T00:15:53Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "36507466456": {
+      "job_id": "109212018916",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-29T01:21:27Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "36652428669": {
+      "job_id": "109689388419",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-09-30T00:53:18Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "36798510951": {
+      "job_id": "110167357419",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-01T00:55:08Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "36949737266": {
+      "job_id": "110659785462",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-02T01:11:59Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "37083616125": {
+      "job_id": "111089228927",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-03T00:49:19Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "37401852886": {
+      "job_id": "112070589844",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-06T01:59:02Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "37555528674": {
+      "job_id": "112580755962",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-07T01:08:07Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "37712921649": {
+      "job_id": "113102739527",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-08T01:26:41Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "37870315621": {
+      "job_id": "113626652780",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-09T01:33:38Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "38013002110": {
+      "job_id": "114097008629",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-10T01:24:03Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "38338458613": {
+      "job_id": "115103808071",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-13T02:47:09Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "38491841590": {
+      "job_id": "115618613062",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-14T00:45:17Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "38658505514": {
+      "job_id": "116173890730",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-15T00:11:36Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "38826707113": {
+      "job_id": "116735736588",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-15T23:59:12Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "38984485896": {
+      "job_id": "117252640743",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-17T00:03:20Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "39349832594": {
+      "job_id": "118391153115",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-20T00:49:41Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "39520013488": {
+      "job_id": "118961271672",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-21T00:14:48Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "39698915208": {
+      "job_id": "119563040741",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-22T00:19:31Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "39876928872": {
+      "job_id": "120164670520",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-23T00:15:29Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "40043438914": {
+      "job_id": "120719561591",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-24T00:09:25Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "40429833677": {
+      "job_id": "121944540682",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-27T01:00:26Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "40611156545": {
+      "job_id": "122562729922",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-28T00:49:57Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "40800082102": {
+      "job_id": "123205813232",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-29T01:24:08Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "40985783504": {
+      "job_id": "123836350171",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-30T01:26:49Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "41154306389": {
+      "job_id": "124397612819",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-10-31T01:14:47Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "41570482923": {
+      "job_id": "125701952589",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-11-03T03:10:31Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "41756186012": {
+      "job_id": "126332729783",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-11-04T01:46:06Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "41951500731": {
+      "job_id": "126996261823",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-11-05T01:54:01Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "42146913081": {
+      "job_id": "127660494514",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-11-06T01:55:38Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "42324046432": {
+      "job_id": "128255081751",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-11-07T01:26:55Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "42752267730": {
+      "job_id": "129618402353",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-11-10T03:53:53Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "42940057876": {
+      "job_id": "130259447261",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-11-11T01:36:23Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "43142480403": {
+      "job_id": "130932489321",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-11-12T02:36:29Z",
+      "job_completed_source": "actions_job_completed_at"
+    },
+    "43351025713": {
+      "job_id": "131641849448",
+      "job_name": "run-radar",
+      "job_conclusion": "success",
+      "job_completed_at": "2026-11-13T02:17:55Z",
+      "job_completed_source": "actions_job_completed_at"
+    }
+  }
+}

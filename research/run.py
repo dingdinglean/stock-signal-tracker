@@ -17,7 +17,7 @@ from research.hypothesis import (
     STUDY_PARAMS,
     WEEKLY_PARAMS,
 )
-from research.market import following_sessions, next_entry_session, parse_day, parse_time, xnys
+from research.market import following_sessions, next_entry_session, parse_day, parse_time, session_bounds, xnys
 from research.metrics import assign_splits, build_groups, number, six_answers
 from research.patterns import complete_weeks_only, completed_daily, detect_pattern, posterior_breakout, weekly_bars
 from research.prices import cache_path, fetch_symbol, incremental_start, merge_cache, read_cache
@@ -75,56 +75,107 @@ def _run_meta(run: dict, repo: str, workflow: str) -> dict[str, str]:
     }
 
 
-def load_strength_jobs(cache_file: Path, run_ids: set[str], *, fetch: bool) -> dict[str, dict]:
-    """Scan-job completion for strength-radar runs. Start time is not availability."""
-    saved: dict[str, dict] = {}
-    if cache_file.exists():
-        try:
-            payload = json.loads(cache_file.read_text(encoding="utf-8"))
-            saved = payload.get("runs", {}) if isinstance(payload, dict) else {}
-        except json.JSONDecodeError:
-            saved = {}
+def _clock_complete(meta: dict | None) -> bool:
+    if not meta:
+        return False
+    return bool(
+        meta.get("job_id")
+        and meta.get("job_completed_at")
+        and meta.get("job_completed_source") == "actions_job_completed_at"
+        and str(meta.get("job_conclusion") or "").lower() == "success"
+    )
+
+
+def _merge_clock(current: dict | None, incoming: dict | None) -> dict:
+    """Keep a verified success clock. An empty refresh must not erase it."""
+    merged = dict(current or {})
+    for key, value in (incoming or {}).items():
+        if value:
+            merged[key] = value
+    if _clock_complete(current) and not _clock_complete(incoming):
+        for key in ("job_id", "job_name", "job_conclusion", "job_completed_at", "job_completed_source"):
+            if (current or {}).get(key):
+                merged[key] = current[key]
+    return merged
+
+
+def load_clock_seed(path: Path) -> tuple[dict[str, dict], dict[str, dict]]:
+    if not path.exists():
+        return {}, {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}, {}
+    if not isinstance(payload, dict):
+        return {}, {}
+    signal = payload.get("signal_runs") if isinstance(payload.get("signal_runs"), dict) else {}
+    strength = payload.get("strength_runs") if isinstance(payload.get("strength_runs"), dict) else {}
+    return signal, strength
+
+
+def _read_run_cache(cache_file: Path) -> dict[str, dict]:
+    if not cache_file.exists():
+        return {}
+    try:
+        payload = json.loads(cache_file.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    runs = payload.get("runs", {}) if isinstance(payload, dict) else {}
+    return runs if isinstance(runs, dict) else {}
+
+
+def _write_run_cache(cache_file: Path, runs: dict[str, dict]) -> None:
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    temporary = cache_file.with_suffix(".json.tmp")
+    temporary.write_text(json.dumps({"runs": runs}, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(cache_file)
+
+
+def load_strength_jobs(
+    cache_file: Path,
+    run_ids: set[str],
+    *,
+    fetch: bool,
+    seed: dict[str, dict] | None = None,
+    client=None,
+) -> dict[str, dict]:
+    """Scan-job completion for the snapshot run ids. Start time is not availability."""
+    found = {str(key): dict(value) for key, value in (seed or {}).items()}
+    for key, value in _read_run_cache(cache_file).items():
+        found[str(key)] = _merge_clock(found.get(str(key)), value)
     if not fetch:
-        return saved
-    try:
-        from github_artifacts import GitHubArtifactError, GitHubPublicArtifacts
-    except Exception:
-        return saved
-    client = GitHubPublicArtifacts()
-    found = dict(saved)
+        return found
+    from research.github_api import GitHubArtifactError, GitHubRateLimitError
+
+    if client is None:
+        from research.github_api import GitHubPublicArtifacts
+
+        client = GitHubPublicArtifacts()
     ids = {str(run_id) for run_id in run_ids if str(run_id)}
-    try:
-        runs = client.workflow_runs("dingdinglean/strong-pullback-screener", "strong_pullback_screener.yml", since=datetime(2026, 8, 1, tzinfo=timezone.utc), max_pages=5)
-    except Exception:
-        runs = []
-    ids.update(str(run.get("id")) for run in runs if run.get("id"))
     for run_id in sorted(ids):
-        current = found.get(run_id, {})
-        if (
-            current.get("job_id")
-            and current.get("job_completed_source") == "actions_job_completed_at"
-            and str(current.get("job_conclusion") or "").lower() == "success"
-        ):
+        if _clock_complete(found.get(run_id)):
             continue
+        if getattr(client, "halted", False):
+            break
         try:
-            jobs = client._get(f"https://api.github.com/repos/dingdinglean/strong-pullback-screener/actions/runs/{run_id}/jobs?per_page=100").json()
+            jobs = client._get(
+                f"https://api.github.com/repos/dingdinglean/strong-pullback-screener/actions/runs/{run_id}/jobs?per_page=100"
+            ).json()
+        except GitHubRateLimitError:
+            break
         except GitHubArtifactError:
             continue
         chosen = choose_scan_job(list(jobs.get("jobs") or []))
         if chosen is None:
             continue
-        found[run_id] = {
+        found[run_id] = _merge_clock(found.get(run_id), {
             "job_id": str(chosen.get("id") or ""),
             "job_name": str(chosen.get("name") or ""),
             "job_conclusion": str(chosen.get("conclusion") or ""),
             "job_completed_at": str(chosen.get("completed_at") or ""),
             "job_completed_source": "actions_job_completed_at",
-        }
-    if found != saved:
-        cache_file.parent.mkdir(parents=True, exist_ok=True)
-        temporary = cache_file.with_suffix(".json.tmp")
-        temporary.write_text(json.dumps({"runs": found}, ensure_ascii=False, indent=2), encoding="utf-8")
-        temporary.replace(cache_file)
+        })
+    _write_run_cache(cache_file, found)
     return found
 
 
@@ -189,73 +240,72 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
-def load_run_index(cache_file: Path, *, fetch: bool, needed: set[str] | None = None) -> tuple[dict[str, dict], list[str]]:
-    """Cache workflow created_at by run id. A failed request does not delete ids already saved."""
-    saved: dict[str, dict] = {}
-    if cache_file.exists():
-        try:
-            payload = json.loads(cache_file.read_text(encoding="utf-8"))
-            saved = payload.get("runs", {}) if isinstance(payload, dict) else {}
-        except json.JSONDecodeError:
-            saved = {}
+def load_run_index(
+    cache_file: Path,
+    *,
+    fetch: bool,
+    needed: set[str] | None = None,
+    seed: dict[str, dict] | None = None,
+    client=None,
+) -> tuple[dict[str, dict], list[str]]:
+    """Clock cache for the ledger's source run ids. A failed request keeps saved clocks."""
+    found = {str(key): dict(value) for key, value in (seed or {}).items()}
+    for key, value in _read_run_cache(cache_file).items():
+        found[str(key)] = _merge_clock(found.get(str(key)), value)
     errors: list[str] = []
     if not fetch:
-        return saved, errors
-    try:
-        from github_artifacts import GitHubArtifactError, GitHubPublicArtifacts
-    except Exception as exc:
-        errors.append(f"GitHub 客户端不可用: {exc.__class__.__name__}: {exc}")
-        return saved, errors
-    client = GitHubPublicArtifacts()
-    since = datetime(2026, 8, 1, tzinfo=timezone.utc)
-    found = dict(saved)
-    for repo, workflow in (("dingdinglean/gupiao", "screen.yml"), ("dingdinglean/gupiao", "long_screen.yml")):
-        try:
-            runs = client.workflow_runs(repo, workflow, since=since, max_pages=5)
-        except Exception as exc:
-            errors.append(f"{repo} {workflow}: {exc.__class__.__name__}: {exc}")
-            continue
-        for run in runs:
-            found[str(run.get("id"))] = _run_meta(run, repo, workflow)
-    for run_id in sorted(needed or ()):
-        current = found.get(run_id, {})
+        return found, errors
+    from research.github_api import GitHubArtifactError, GitHubRateLimitError
+
+    if client is None:
+        from research.github_api import GitHubPublicArtifacts
+
+        client = GitHubPublicArtifacts()
+    for run_id in sorted(str(item) for item in (needed or set()) if str(item)):
+        if getattr(client, "halted", False):
+            errors.append(f"run {run_id}: skipped after rate limit")
+            break
+        current = dict(found.get(run_id, {}))
         if not current.get("created_at"):
             try:
                 payload = client._get(f"https://api.github.com/repos/dingdinglean/gupiao/actions/runs/{run_id}").json()
+            except GitHubRateLimitError as exc:
+                errors.append(f"run {run_id}: {exc}")
+                break
             except GitHubArtifactError as exc:
                 errors.append(f"run {run_id}: {exc}")
                 payload = {}
             if payload.get("created_at") or payload.get("run_started_at"):
-                current = _run_meta(payload, "dingdinglean/gupiao", str(payload.get("name") or ""))
-                found[run_id] = current
-        if (
-            current.get("job_completed_at")
-            and current.get("job_id")
-            and current.get("job_completed_source") == "actions_job_completed_at"
-            and str(current.get("job_conclusion") or "").lower() == "success"
-        ):
+                current = _merge_clock(current, _run_meta(payload, "dingdinglean/gupiao", str(payload.get("name") or "")))
+        if _clock_complete(current):
+            found[run_id] = current
             continue
+        if getattr(client, "halted", False):
+            found[run_id] = current
+            errors.append(f"jobs {run_id}: skipped after rate limit")
+            break
         try:
             jobs = client._get(f"https://api.github.com/repos/dingdinglean/gupiao/actions/runs/{run_id}/jobs?per_page=100").json()
+        except GitHubRateLimitError as exc:
+            errors.append(f"jobs {run_id}: {exc}")
+            found[run_id] = current
+            break
         except GitHubArtifactError as exc:
             errors.append(f"jobs {run_id}: {exc}")
-            jobs = {}
+            found[run_id] = current
+            continue
         chosen = choose_scan_job(list(jobs.get("jobs") or []))
-        current.pop("job_completed_at", None)
-        current.pop("job_completed_source", None)
         if chosen is not None:
-            current["job_id"] = str(chosen.get("id") or "")
-            current["job_name"] = str(chosen.get("name") or "")
-            current["job_conclusion"] = str(chosen.get("conclusion") or "")
-            current["job_completed_at"] = str(chosen.get("completed_at") or "")
-            current["job_completed_source"] = "actions_job_completed_at"
+            current = _merge_clock(current, {
+                "job_id": str(chosen.get("id") or ""),
+                "job_name": str(chosen.get("name") or ""),
+                "job_conclusion": str(chosen.get("conclusion") or ""),
+                "job_completed_at": str(chosen.get("completed_at") or ""),
+                "job_completed_source": "actions_job_completed_at",
+            })
         if current:
             found[run_id] = current
-    if found != saved:
-        cache_file.parent.mkdir(parents=True, exist_ok=True)
-        temporary = cache_file.with_suffix(".json.tmp")
-        temporary.write_text(json.dumps({"runs": found}, ensure_ascii=False, indent=2), encoding="utf-8")
-        temporary.replace(cache_file)
+    _write_run_cache(cache_file, found)
     return found, errors
 
 
@@ -307,6 +357,12 @@ def execute(
     history = _read_csv(history_path)
     baseline_ids = _baseline_ids(root)
     frozen = [(row.get("signal_id"), row.get("push_price"), row.get("signal_price")) for row in history]
+    signal_seed, strength_seed = load_clock_seed(root / "research" / "source_clocks.json")
+    clock_client = None
+    if fetch:
+        from research.github_api import GitHubPublicArtifacts
+
+        clock_client = GitHubPublicArtifacts()
     raw_snapshots = _read_csv(root / "data" / "sector_snapshots.csv")
     snapshots = _with_strength_availability(
         raw_snapshots,
@@ -314,10 +370,18 @@ def execute(
             root / "data" / "research_cache" / "strength_jobs.json",
             {str(row.get("run_id") or "") for row in raw_snapshots},
             fetch=fetch,
+            seed=strength_seed,
+            client=clock_client,
         ),
     )
     needed_runs = {str(row.get("source_run_id") or "") for row in history if row.get("source_run_id")}
-    run_index, run_errors = load_run_index(root / "data" / "research_cache" / "run_times.json", fetch=fetch, needed=needed_runs)
+    run_index, run_errors = load_run_index(
+        root / "data" / "research_cache" / "run_times.json",
+        fetch=fetch,
+        needed=needed_runs,
+        seed=signal_seed,
+        client=clock_client,
+    )
     symbols = sorted({row.get("symbol", "").upper() for row in history if row.get("symbol")})
     frames, price_errors = _prices_for(root, [*symbols, "^GSPC"], fetch=fetch, today=today)
     calendar = xnys(2024, today.year + 1)
@@ -600,7 +664,16 @@ def execute(
         "artifact_access": "本仓库没有 Pages 站点。完整 HTML/CSV 由 Research dry-run 工作流上传为 Actions artifact，名称 signal-research-report-<run_id>。",
         "adjustment": "模拟成交用 Yahoo auto_adjust=False 的开高低收（拆股已回溯到整段，分红不在 OHLC 里）。冻结 push_price 不参与成交，也不被改写。",
         "network": "full" if full else "dry-run",
+        "clock_auth": (
+            "Workflow GITHUB_TOKEN is sent when the environment has it and is limited to this repository. "
+            "A cross-repo Actions 403 does not become a clock. Known success jobs stay in research/source_clocks.json "
+            "and the Actions cache. Rate limits stop further requests instead of deleting those clocks."
+        ),
     }
+    quality, signal_lines, chart_lines = _quality_gate(study, sim_rows, charts, now=now, calendar=calendar)
+    coverage["quality_gate"] = "pass" if not quality else "fail: " + ", ".join(quality)
+    coverage["signal_clock_coverage"] = " | ".join(signal_lines)
+    coverage["chart_coverage"] = " | ".join(chart_lines)
     out = root / "output" / "research"
     signal_fields = list(research_rows[0].keys()) if research_rows else ["signal_id"]
     write_csv(out / "signals.csv", research_rows, signal_fields)
@@ -624,11 +697,88 @@ def execute(
     if changed or frozen != [(row.get("signal_id"), row.get("push_price"), row.get("signal_price")) for row in history]:
         raise RuntimeError(f"研究过程改动了受保护文件或冻结价格: {changed}")
     missing_prices = [symbol for symbol in symbols if symbol in price_errors]
-    if full and (missing_prices or any(not row["asof_time"] for row in study)):
-        return 1, coverage
-    if not study:
+    if quality or not study or (full and missing_prices):
         return 1, coverage
     return 0, coverage
+
+
+def _success_entry(row: dict) -> bool:
+    return bool(
+        row.get("entry_time")
+        and row.get("entry_job_id")
+        and row.get("entry_job_source") == "actions_job_completed_at"
+        and str(row.get("entry_job_conclusion") or "").lower() == "success"
+    )
+
+
+def _open_still_ahead(calendar, entry_time: datetime, now: datetime) -> bool:
+    day = next_entry_session(calendar, entry_time)
+    if day is None:
+        return False
+    bounds = session_bounds(calendar, day)
+    return bool(bounds and bounds[0] > now)
+
+
+def _quality_gate(
+    study: list[dict],
+    sim_rows: list[dict],
+    charts: list[dict],
+    *,
+    now: datetime,
+    calendar,
+) -> tuple[list[str], list[str], list[str]]:
+    """Per signal and per chart. A populated older sample cannot cover a new gap.
+
+    A study row needs its own as-of clock, a successful scan job, and its own
+    simulation rows. ``missing_entry`` is allowed only when that job clock
+    exists and the next NYSE open is still ahead of ``now``. One drawn PNG
+    does not cover another case. An undrawable case must carry its own reason.
+    """
+    reasons: list[str] = []
+    signal_lines: list[str] = []
+    chart_lines: list[str] = []
+    if not study:
+        return ["no_daily_or_weekly_rows"], signal_lines, chart_lines
+    by_signal: dict[str, list[dict]] = {}
+    for trade in sim_rows:
+        by_signal.setdefault(str(trade.get("signal_id") or ""), []).append(trade)
+    for row in study:
+        signal_id = str(row.get("signal_id") or "")
+        trades = by_signal.get(signal_id, [])
+        entry_time = parse_time(row.get("entry_time"))
+        if not row.get("asof_time"):
+            state = "missing_asof"
+            reasons.append(f"missing_asof:{signal_id}")
+        elif not _success_entry(row) or entry_time is None:
+            state = "missing_entry_clock"
+            reasons.append(f"missing_entry_clock:{signal_id}")
+        elif not trades:
+            state = "missing_simulation"
+            reasons.append(f"missing_simulation:{signal_id}")
+        elif all(trade.get("status") == "missing_entry" for trade in trades):
+            if _open_still_ahead(calendar, entry_time, now):
+                state = "pending_next_open"
+            else:
+                state = "entry_bar_missing"
+                reasons.append(f"entry_bar_missing:{signal_id}")
+        else:
+            state = "simulated"
+        signal_lines.append(
+            f"{signal_id} {row.get('symbol')} asof={'yes' if row.get('asof_time') else 'no'} "
+            f"entry={'yes' if _success_entry(row) else 'no'} sim={len(trades)} {state}"
+        )
+    for chart in charts:
+        label = str(chart.get("signal_id") or chart.get("title") or "unknown")
+        if chart.get("png"):
+            chart_lines.append(f"{label} drawn")
+            continue
+        reason = str(chart.get("draw_reason") or "").strip()
+        if chart.get("draw_status") == "undrawable" and reason:
+            chart_lines.append(f"{label} undrawable: {reason}")
+            continue
+        reasons.append(f"missing_png:{label}")
+        chart_lines.append(f"{label} missing_png")
+    return reasons, signal_lines, chart_lines
 
 
 def _charts(chart_inputs: list[dict], rows: list[dict], price_errors: dict[str, str]) -> list[dict]:
@@ -644,21 +794,40 @@ def _charts(chart_inputs: list[dict], rows: list[dict], price_errors: dict[str, 
         title = f"{row['symbol']} {row['cohort']} {row['push_date']}"
         if item is None:
             reason = price_errors.get(row["symbol"].upper(), "不在日/周研究样本或缺少 as-of 行情")
-            chosen.append({"title": title, "note": note + " " + reason, "png": None})
+            status = "missing" if row.get("asof_time") and row.get("cohort") in {"daily", "weekly"} else "undrawable"
+            chosen.append({
+                "title": title, "note": note + " " + reason, "png": None, "signal_id": row["signal_id"],
+                "draw_status": status, "draw_reason": "" if status == "missing" else reason,
+            })
             return
         pattern_dict = item["pattern"].as_dict()
         prefix = "weekly_" if row.get("cohort") == "weekly" else "daily_"
         pattern_dict["posterior_breakout_date"] = row.get(f"{prefix}posterior_breakout_date", "")
         png, error = render_chart(item["frame"], row, pattern_dict)
         posterior = pattern_dict.get("posterior_breakout_date") or "无"
-        chosen.append({"title": title, "note": note + (" " + error if error else f" 图中低点来自信号当时的判断。后验突破日期：{posterior}，与信号时突破分开标注。"), "png": png})
+        if png:
+            status, reason = "drawn", ""
+            detail = f" 图中低点来自信号当时的判断。后验突破日期：{posterior}，与信号时突破分开标注。"
+        elif error:
+            status, reason = "undrawable", error
+            detail = " " + error
+        else:
+            status, reason = "missing", ""
+            detail = " 应绘制但没有 PNG，也没有不可绘制原因。"
+        chosen.append({
+            "title": title, "note": note + detail, "png": png, "signal_id": row["signal_id"],
+            "draw_status": status, "draw_reason": reason,
+        })
 
     for symbol in PRIORITY:
         matches = [row for row in rows if row["symbol"] == symbol and row["cohort"] in {"daily", "weekly"}]
         if not matches:
             others = [row for row in rows if row["symbol"] == symbol]
             if not others:
-                chosen.append({"title": symbol, "note": "历史里没有这只股票的正式推送，不绘制。", "png": None})
+                chosen.append({
+                    "title": symbol, "note": "历史里没有这只股票的正式推送，不绘制。", "png": None,
+                    "signal_id": "", "draw_status": "undrawable", "draw_reason": "历史里没有这只股票的正式推送，不绘制。",
+                })
             for row in others:
                 add(row, "不在日/周研究样本。")
             continue

@@ -181,8 +181,9 @@ def test_a_failed_signal_job_does_not_enter_and_a_failed_radar_is_not_strong(tmp
         }},
     )
     assert "available_at" not in enriched[0]
-    code, _coverage = execute(tmp_path, full=False, fetch=False, today=date(2026, 8, 20))
-    assert code == 0
+    code, coverage = execute(tmp_path, full=False, fetch=False, today=date(2026, 8, 20))
+    assert code == 1
+    assert "missing_entry_clock:caller-1" in coverage["quality_gate"]
     with (tmp_path / "output" / "research" / "signals.csv").open(encoding="utf-8-sig") as handle:
         signal = next(csv.DictReader(handle))
     assert signal["entry_time"] == ""
