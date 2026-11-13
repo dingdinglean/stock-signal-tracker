@@ -1,13 +1,14 @@
 【美股信号验证器】
-历史正式推送总数：71
-已成熟10日信号数：59
+历史正式推送总数：72
+已成熟10日信号数：60
 强势板块内信号数：1
-非强势板块信号数：66
+非强势板块信号数：67
 
 基准：实际推送时冻结的 push_price；T+N 为 push_date 后第 N 个实际交易日收盘价。
 有效性：10 个交易日内，先触及 +5% 为有效；先触及 -5% 为无效；同日双触及为无法判定。
 
 最近具体推送：
+TRGP｜日/4H｜信号K 2026-11-11｜推送 2026-11-12｜价 291.7799987792969｜其他（Oil & Gas Storage & Transportation）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 UBER｜周线｜信号K 2026-11-06｜推送 2026-11-06｜价 68.58999633789062｜其他（Passenger Ground Transportation）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 MOS｜周线｜信号K 2026-11-06｜推送 2026-11-06｜价 22.360000610351562｜其他（Fertilizers & Agricultural Chemicals）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 MAA｜周线｜信号K 2026-11-06｜推送 2026-11-06｜价 118.93000030517578｜其他（Multi-Family Residential REITs）｜排名 -｜强势 否｜T+5 pending｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
@@ -19,8 +20,7 @@ CCI｜月线｜信号K 2026-10-31｜推送 2026-11-02｜价 87.02999877929688｜
 TDG｜周线｜信号K 2026-10-30｜推送 2026-10-30｜价 1146.81005859375｜航空航天｜排名 2｜强势 是｜T+5 4.377｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 CMG｜周线｜信号K 2026-10-30｜推送 2026-10-30｜价 31.889999389648438｜其他（Restaurants）｜排名 -｜强势 否｜T+5 7.965｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 CHTR｜周线｜信号K 2026-10-30｜推送 2026-10-30｜价 111.48999786376953｜其他（Cable & Satellite）｜排名 -｜强势 否｜T+5 5.902｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
-WAB｜日/4H｜信号K 2026-10-28｜推送 2026-10-29｜价 282.17999267578125｜其他（Construction Machinery & Heavy Transportation Equipment）｜排名 -｜强势 否｜T+5 -1.311｜T+10 pending｜T+20 pending｜MFE10 pending｜MAE10 pending｜pending
 
 全部历史策略统计（包括邮件隐藏及4小时记录）：
-{"total": 71, "priced": 70, "fresh": 70, "profit": 53, "loss": 17, "flat": 0, "win_rate": 75.71428571428571, "average_return": 5.335375998840928}
+{"total": 72, "priced": 71, "fresh": 71, "profit": 50, "loss": 21, "flat": 0, "win_rate": 70.4225352112676, "average_return": 4.048337315221885}
 最新收益采用拆股、分红复权后的可比价 / 原始推送价；缺失数据不按0计，统计保留最后有效收益。
