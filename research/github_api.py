@@ -33,11 +33,13 @@ class GitHubPublicArtifacts:
         timeout: int = 30,
         sleeper: Callable[[float], None] | None = None,
         max_rate_retries: int = 2,
+        max_wait: float = 60.0,
     ) -> None:
         self.token = token or os.getenv("GH_TOKEN") or os.getenv("GITHUB_TOKEN")
         self.timeout = timeout
         self.sleeper = sleeper or time.sleep
         self.max_rate_retries = max_rate_retries
+        self.max_wait = max_wait
         self.cross_repo_denied = False
         self.halted = False
         self.base_headers = {
@@ -70,13 +72,26 @@ class GitHubPublicArtifacts:
         body = response.text.lower()
         return "rate limit" in body or "abuse detection" in body
 
-    def _wait(self, response: requests.Response, attempt: int) -> None:
-        raw = response.headers.get("Retry-After", "")
+    def _delay_seconds(self, response: requests.Response, attempt: int) -> float:
+        raw = str(response.headers.get("Retry-After") or "").strip()
+        if not raw:
+            return float(2 ** attempt)
         try:
-            delay = float(raw)
+            return float(raw)
         except ValueError:
-            delay = float(2 ** attempt)
-        self.sleeper(min(max(delay, 0.0), 20.0))
+            self.halted = True
+            raise GitHubRateLimitError(
+                "Retry-After is not a number of seconds; not retrying before the server's indicated time"
+            )
+
+    def _wait(self, response: requests.Response, attempt: int) -> None:
+        delay = self._delay_seconds(response, attempt)
+        if delay > self.max_wait:
+            self.halted = True
+            raise GitHubRateLimitError(
+                f"server asked to wait {delay:.0f}s; not retrying before that interval"
+            )
+        self.sleeper(max(delay, 0.0))
 
     def _get(self, url: str, *, binary: bool = False) -> requests.Response:
         if self.halted:

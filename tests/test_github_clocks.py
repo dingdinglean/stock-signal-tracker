@@ -106,6 +106,137 @@ def test_seed_clock_is_used_when_the_network_is_off(tmp_path: Path):
     assert "run-radar" in text
 
 
+def test_retry_after_longer_than_the_budget_is_not_shortened(monkeypatch):
+    waits = []
+
+    def fake_get(url, headers, timeout, allow_redirects):
+        return _Response(429, "abuse detection", headers={"Retry-After": "120"})
+
+    monkeypatch.setattr(requests, "get", fake_get)
+    client = GitHubPublicArtifacts(token="super-secret-token", sleeper=waits.append, max_wait=60)
+    try:
+        client._get("https://api.github.com/repos/dingdinglean/gupiao/actions/runs/9")
+    except GitHubRateLimitError as exc:
+        assert "120" in str(exc)
+        assert "super-secret-token" not in str(exc)
+    else:
+        raise AssertionError("a long Retry-After was retried early")
+    assert waits == []
+    assert client.halted is True
+
+
+def test_new_unseeded_signal_without_a_job_clock_fails_even_when_older_sims_exist():
+    from datetime import datetime, timezone
+
+    from research.market import xnys
+    from research.run import _quality_gate
+
+    old = {
+        "signal_id": "old", "symbol": "IDXX", "asof_time": "2026-07-06T12:00:00+00:00",
+        "entry_time": "2026-07-06T20:05:00+00:00", "entry_job_id": "1",
+        "entry_job_source": "actions_job_completed_at", "entry_job_conclusion": "success",
+    }
+    new = {
+        "signal_id": "new", "symbol": "TRGP", "asof_time": "2026-11-12T16:36:27+00:00",
+        "entry_time": "", "entry_job_id": "", "entry_job_source": "", "entry_job_conclusion": "",
+    }
+    sims = [{"signal_id": "old", "status": "closed"}]
+    charts = [{"signal_id": "old", "title": "IDXX", "png": b"png", "draw_status": "drawn", "draw_reason": ""}]
+    reasons, lines, _charts = _quality_gate(
+        [old, new], sims, charts, now=datetime(2026, 11, 13, 4, 41, tzinfo=timezone.utc), calendar=xnys(2026, 2027),
+    )
+    assert any(reason == "missing_entry_clock:new" for reason in reasons)
+    assert "empty_simulations" not in " ".join(reasons)
+    assert any(line.startswith("new TRGP") and "missing_entry_clock" in line for line in lines)
+
+
+def test_pending_next_open_is_not_a_missing_clock():
+    from datetime import datetime, timezone
+
+    from research.market import xnys
+    from research.run import _quality_gate
+
+    row = {
+        "signal_id": "trgp", "symbol": "TRGP", "asof_time": "2026-11-12T16:36:27+00:00",
+        "entry_time": "2026-11-12T16:38:47+00:00", "entry_job_id": "131330182973",
+        "entry_job_source": "actions_job_completed_at", "entry_job_conclusion": "success",
+    }
+    sims = [{"signal_id": "trgp", "status": "missing_entry", "exit_reason": "entry_session_missing", "entry_date": "2026-11-13"}]
+    reasons, lines, _charts = _quality_gate(
+        [row], sims, [], now=datetime(2026, 11, 13, 4, 41, tzinfo=timezone.utc), calendar=xnys(2026, 2027),
+    )
+    assert reasons == []
+    assert any("pending_next_open" in line for line in lines)
+    later, _lines, _charts = _quality_gate(
+        [row], sims, [], now=datetime(2026, 11, 16, 18, 0, tzinfo=timezone.utc), calendar=xnys(2026, 2027),
+    )
+    assert any(reason == "entry_bar_missing:trgp" for reason in later)
+
+
+def test_one_missing_priority_png_fails_when_another_chart_exists():
+    from datetime import datetime, timezone
+
+    from research.market import xnys
+    from research.run import _quality_gate
+
+    row = {
+        "signal_id": "old", "symbol": "IDXX", "asof_time": "2026-07-06T12:00:00+00:00",
+        "entry_time": "2026-07-06T20:05:00+00:00", "entry_job_id": "1",
+        "entry_job_source": "actions_job_completed_at", "entry_job_conclusion": "success",
+    }
+    sims = [{"signal_id": "old", "status": "closed"}]
+    now = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    calendar = xnys(2026, 2027)
+    missing, _signals, charts = _quality_gate(
+        [row], sims,
+        [
+            {"signal_id": "idxx", "title": "IDXX", "png": b"png", "draw_status": "drawn", "draw_reason": ""},
+            {"signal_id": "alle", "title": "ALLE", "png": None},
+        ],
+        now=now, calendar=calendar,
+    )
+    assert any(reason == "missing_png:alle" for reason in missing)
+    assert any("ALLE missing_png" in line or line.startswith("alle missing_png") for line in charts)
+    allowed, _signals, allowed_charts = _quality_gate(
+        [row], sims,
+        [
+            {"signal_id": "idxx", "png": b"png", "draw_status": "drawn", "draw_reason": ""},
+            {"signal_id": "alle", "png": None, "draw_status": "undrawable", "draw_reason": "信号前交易日 12 根，不足 60，不绘制案例图"},
+        ],
+        now=now, calendar=calendar,
+    )
+    assert not any(reason.startswith("missing_png:") for reason in allowed)
+    assert any("undrawable" in line for line in allowed_charts)
+
+
+def test_jobs_rate_limit_after_run_metadata_keeps_the_new_signal_without_an_entry(tmp_path: Path):
+    from research.github_api import GitHubRateLimitError
+    from research.run import load_run_index
+
+    class _Client:
+        halted = False
+
+        def _get(self, url: str):
+            if url.endswith("/jobs?per_page=100"):
+                self.halted = True
+                raise GitHubRateLimitError("GET jobs failed: 429")
+            return _Response(200, "", payload={
+                "created_at": "2026-11-12T16:36:27Z", "run_started_at": "2026-11-12T16:36:27Z", "id": "new-run",
+            })
+
+    cache = tmp_path / "run_times.json"
+    cache.write_text(json.dumps({"runs": {"old-run": {
+        "created_at": "2026-07-06T12:00:00Z", "run_started_at": "2026-07-06T12:00:00Z",
+        "job_id": "7", "job_name": "scan", "job_conclusion": "success",
+        "job_completed_at": "2026-07-06T20:05:00Z", "job_completed_source": "actions_job_completed_at",
+    }}}), encoding="utf-8")
+    found, errors = load_run_index(cache, fetch=True, needed={"old-run", "new-run"}, client=_Client())
+    assert found["old-run"]["job_completed_at"] == "2026-07-06T20:05:00Z"
+    assert found["new-run"]["created_at"] == "2026-11-12T16:36:27Z"
+    assert not found["new-run"].get("job_completed_at")
+    assert errors
+
+
 def test_dry_run_fails_closed_when_every_study_clock_is_missing(tmp_path: Path):
     from tests.test_research_asof_caller import _write_history, _write_prices
 
@@ -115,7 +246,7 @@ def test_dry_run_fails_closed_when_every_study_clock_is_missing(tmp_path: Path):
     code, coverage = execute(tmp_path, full=False, fetch=False, today=date(2026, 8, 20))
     assert code == 1
     assert coverage["quality_gate"].startswith("fail:")
-    assert "missing_asof:1" in coverage["quality_gate"]
-    assert "empty_simulations" in coverage["quality_gate"]
+    assert "missing_asof:caller-1" in coverage["quality_gate"]
+    assert "caller-1 TEST" in coverage["signal_clock_coverage"]
     ledger = (tmp_path / "data" / "signal_history.csv").read_text(encoding="utf-8")
     assert "caller-1" in ledger

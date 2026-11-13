@@ -17,7 +17,7 @@ from research.hypothesis import (
     STUDY_PARAMS,
     WEEKLY_PARAMS,
 )
-from research.market import following_sessions, next_entry_session, parse_day, parse_time, xnys
+from research.market import following_sessions, next_entry_session, parse_day, parse_time, session_bounds, xnys
 from research.metrics import assign_splits, build_groups, number, six_answers
 from research.patterns import complete_weeks_only, completed_daily, detect_pattern, posterior_breakout, weekly_bars
 from research.prices import cache_path, fetch_symbol, incremental_start, merge_cache, read_cache
@@ -670,8 +670,10 @@ def execute(
             "and the Actions cache. Rate limits stop further requests instead of deleting those clocks."
         ),
     }
-    quality = _quality_gate(study, sim_rows, charts)
+    quality, signal_lines, chart_lines = _quality_gate(study, sim_rows, charts, now=now, calendar=calendar)
     coverage["quality_gate"] = "pass" if not quality else "fail: " + ", ".join(quality)
+    coverage["signal_clock_coverage"] = " | ".join(signal_lines)
+    coverage["chart_coverage"] = " | ".join(chart_lines)
     out = root / "output" / "research"
     signal_fields = list(research_rows[0].keys()) if research_rows else ["signal_id"]
     write_csv(out / "signals.csv", research_rows, signal_fields)
@@ -700,25 +702,83 @@ def execute(
     return 0, coverage
 
 
-def _quality_gate(study: list[dict], sim_rows: list[dict], charts: list[dict]) -> list[str]:
-    """Dry-run and full both fail closed when the core evidence is missing.
+def _success_entry(row: dict) -> bool:
+    return bool(
+        row.get("entry_time")
+        and row.get("entry_job_id")
+        and row.get("entry_job_source") == "actions_job_completed_at"
+        and str(row.get("entry_job_conclusion") or "").lower() == "success"
+    )
 
-    A missing clock stays unknown. It is not filled from the push date. The
-    workflow must still be red when that happens for every studied push, when
-    no trade can be simulated, or when a priced priority chart has no image.
+
+def _open_still_ahead(calendar, entry_time: datetime, now: datetime) -> bool:
+    day = next_entry_session(calendar, entry_time)
+    if day is None:
+        return False
+    bounds = session_bounds(calendar, day)
+    return bool(bounds and bounds[0] > now)
+
+
+def _quality_gate(
+    study: list[dict],
+    sim_rows: list[dict],
+    charts: list[dict],
+    *,
+    now: datetime,
+    calendar,
+) -> tuple[list[str], list[str], list[str]]:
+    """Per signal and per chart. A populated older sample cannot cover a new gap.
+
+    A study row needs its own as-of clock, a successful scan job, and its own
+    simulation rows. ``missing_entry`` is allowed only when that job clock
+    exists and the next NYSE open is still ahead of ``now``. One drawn PNG
+    does not cover another case. An undrawable case must carry its own reason.
     """
     reasons: list[str] = []
+    signal_lines: list[str] = []
+    chart_lines: list[str] = []
     if not study:
-        return ["no_daily_or_weekly_rows"]
-    missing = [row["signal_id"] for row in study if not row.get("asof_time")]
-    if missing:
-        reasons.append(f"missing_asof:{len(missing)}")
-    if not sim_rows:
-        reasons.append("empty_simulations")
-    priority = [row for row in study if row.get("symbol") in PRIORITY and row.get("asof_time")]
-    if priority and not any(chart.get("png") for chart in charts):
-        reasons.append("no_chart_png")
-    return reasons
+        return ["no_daily_or_weekly_rows"], signal_lines, chart_lines
+    by_signal: dict[str, list[dict]] = {}
+    for trade in sim_rows:
+        by_signal.setdefault(str(trade.get("signal_id") or ""), []).append(trade)
+    for row in study:
+        signal_id = str(row.get("signal_id") or "")
+        trades = by_signal.get(signal_id, [])
+        entry_time = parse_time(row.get("entry_time"))
+        if not row.get("asof_time"):
+            state = "missing_asof"
+            reasons.append(f"missing_asof:{signal_id}")
+        elif not _success_entry(row) or entry_time is None:
+            state = "missing_entry_clock"
+            reasons.append(f"missing_entry_clock:{signal_id}")
+        elif not trades:
+            state = "missing_simulation"
+            reasons.append(f"missing_simulation:{signal_id}")
+        elif all(trade.get("status") == "missing_entry" for trade in trades):
+            if _open_still_ahead(calendar, entry_time, now):
+                state = "pending_next_open"
+            else:
+                state = "entry_bar_missing"
+                reasons.append(f"entry_bar_missing:{signal_id}")
+        else:
+            state = "simulated"
+        signal_lines.append(
+            f"{signal_id} {row.get('symbol')} asof={'yes' if row.get('asof_time') else 'no'} "
+            f"entry={'yes' if _success_entry(row) else 'no'} sim={len(trades)} {state}"
+        )
+    for chart in charts:
+        label = str(chart.get("signal_id") or chart.get("title") or "unknown")
+        if chart.get("png"):
+            chart_lines.append(f"{label} drawn")
+            continue
+        reason = str(chart.get("draw_reason") or "").strip()
+        if chart.get("draw_status") == "undrawable" and reason:
+            chart_lines.append(f"{label} undrawable: {reason}")
+            continue
+        reasons.append(f"missing_png:{label}")
+        chart_lines.append(f"{label} missing_png")
+    return reasons, signal_lines, chart_lines
 
 
 def _charts(chart_inputs: list[dict], rows: list[dict], price_errors: dict[str, str]) -> list[dict]:
@@ -734,21 +794,40 @@ def _charts(chart_inputs: list[dict], rows: list[dict], price_errors: dict[str, 
         title = f"{row['symbol']} {row['cohort']} {row['push_date']}"
         if item is None:
             reason = price_errors.get(row["symbol"].upper(), "不在日/周研究样本或缺少 as-of 行情")
-            chosen.append({"title": title, "note": note + " " + reason, "png": None})
+            status = "missing" if row.get("asof_time") and row.get("cohort") in {"daily", "weekly"} else "undrawable"
+            chosen.append({
+                "title": title, "note": note + " " + reason, "png": None, "signal_id": row["signal_id"],
+                "draw_status": status, "draw_reason": "" if status == "missing" else reason,
+            })
             return
         pattern_dict = item["pattern"].as_dict()
         prefix = "weekly_" if row.get("cohort") == "weekly" else "daily_"
         pattern_dict["posterior_breakout_date"] = row.get(f"{prefix}posterior_breakout_date", "")
         png, error = render_chart(item["frame"], row, pattern_dict)
         posterior = pattern_dict.get("posterior_breakout_date") or "无"
-        chosen.append({"title": title, "note": note + (" " + error if error else f" 图中低点来自信号当时的判断。后验突破日期：{posterior}，与信号时突破分开标注。"), "png": png})
+        if png:
+            status, reason = "drawn", ""
+            detail = f" 图中低点来自信号当时的判断。后验突破日期：{posterior}，与信号时突破分开标注。"
+        elif error:
+            status, reason = "undrawable", error
+            detail = " " + error
+        else:
+            status, reason = "missing", ""
+            detail = " 应绘制但没有 PNG，也没有不可绘制原因。"
+        chosen.append({
+            "title": title, "note": note + detail, "png": png, "signal_id": row["signal_id"],
+            "draw_status": status, "draw_reason": reason,
+        })
 
     for symbol in PRIORITY:
         matches = [row for row in rows if row["symbol"] == symbol and row["cohort"] in {"daily", "weekly"}]
         if not matches:
             others = [row for row in rows if row["symbol"] == symbol]
             if not others:
-                chosen.append({"title": symbol, "note": "历史里没有这只股票的正式推送，不绘制。", "png": None})
+                chosen.append({
+                    "title": symbol, "note": "历史里没有这只股票的正式推送，不绘制。", "png": None,
+                    "signal_id": "", "draw_status": "undrawable", "draw_reason": "历史里没有这只股票的正式推送，不绘制。",
+                })
             for row in others:
                 add(row, "不在日/周研究样本。")
             continue
