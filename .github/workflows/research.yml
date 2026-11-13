@@ -24,6 +24,12 @@ jobs:
   research:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      # Scoped to this repository by GitHub. It cannot read Actions jobs in
+      # dingdinglean/gupiao or dingdinglean/strong-pullback-screener. The client
+      # may use it for a higher quota and otherwise reads the public API.
+      # Do not print this value. Do not replace it with a classic PAT.
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
