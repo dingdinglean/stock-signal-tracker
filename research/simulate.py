@@ -7,11 +7,11 @@ from that same print.
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import pandas as pd
 
-from research.market import next_entry_session, session_offset
+from research.market import next_entry_session, session_offset, sessions_in
 
 
 def _num(value) -> float | None:
@@ -75,7 +75,7 @@ def simulate_trade(
         "mfe": "",
         "mae": "",
         "highwater_drawdown": "",
-        "entry_rule": "next NYSE open at or after the source-run created_at; barriers are measured from that open",
+        "entry_rule": "next NYSE open at or after the supplied information time; barriers are measured from that open",
         "censored": "",
     }
     if entry_day is None or bars is None or bars.empty:
@@ -249,27 +249,28 @@ def ledger_index_return(index_bars: pd.DataFrame | None, push_day: date, session
     return ledger_benchmark(index_bars, push_day, sessions, calendar)["percent"]
 
 
-def path_highwater_percent(bars: pd.DataFrame | None, start_day: date, sessions: int, calendar) -> str:
-    """Percent peak-to-trough drawdown over the N sessions after ``start_day``.
-
-    The peak starts at that session's close and then follows highs. This is not
-    MAE, which is the lowest low versus the starting price and ignores the path
-    of the high-water mark.
-    """
-    if bars is None or bars.empty or sessions < 1:
-        return ""
+def _dated_window(bars: pd.DataFrame | None, start_day: date, sessions: int, calendar):
+    """Sessions strictly after ``start_day`` through the Nth one. Complete means every one is cached."""
+    if bars is None or bars.empty or sessions < 1 or start_day not in bars.index:
+        return None, [], False
     end = session_offset(calendar, start_day, sessions)
-    if end is None or start_day not in bars.index:
-        return ""
+    if end is None:
+        return None, [], False
+    expected = sessions_in(calendar, start_day + timedelta(days=1), end)
+    present = [day for day in expected if day in bars.index]
+    return end, present, len(expected) == sessions and len(present) == sessions
+
+
+def _drawdown_percent(bars: pd.DataFrame, start_day: date, days: list[date]) -> str:
+    """Peak starts at the start close. Intraday order is unknown, so high is applied before low."""
     start_price = _num(bars.loc[start_day]["close"])
-    if start_price is None:
+    if start_price is None or not days:
         return ""
-    window = bars.loc[[day for day in bars.index if start_day < day <= end]]
     peak = start_price
     worst = 0.0
-    for _, row in window.iterrows():
-        high = _num(row.get("high"))
-        low = _num(row.get("low"))
+    for day in days:
+        high = _num(bars.loc[day].get("high"))
+        low = _num(bars.loc[day].get("low"))
         if high:
             peak = max(peak, high)
         if low and peak > 0:
@@ -277,14 +278,48 @@ def path_highwater_percent(bars: pd.DataFrame | None, start_day: date, sessions:
     return f"{worst * 100.0:.6f}"
 
 
-def forward_close_return_percent(bars: pd.DataFrame | None, start_day: date, sessions: int, calendar) -> str:
-    """Percent close-to-close move starting at ``start_day``, not at the push."""
-    if bars is None or bars.empty:
+def path_highwater_percent(bars: pd.DataFrame | None, start_day: date, sessions: int, calendar) -> str:
+    """Mature N-session high-water drawdown, in percent. Blank when the window is short.
+
+    This is not MAE. A partial window is not returned here.
+    """
+    _end, present, complete = _dated_window(bars, start_day, sessions, calendar)
+    if not complete:
         return ""
-    end = session_offset(calendar, start_day, sessions)
-    if end is None or start_day not in bars.index or end not in bars.index:
+    return _drawdown_percent(bars, start_day, present)
+
+
+def path_highwater_todate(bars: pd.DataFrame | None, start_day: date, sessions: int, calendar) -> str:
+    """Drawdown using only sessions already cached, including a short window."""
+    _end, present, _complete = _dated_window(bars, start_day, sessions, calendar)
+    if not present:
+        return ""
+    return _drawdown_percent(bars, start_day, present)
+
+
+def forward_close_return_percent(bars: pd.DataFrame | None, start_day: date, sessions: int, calendar) -> str:
+    """Percent close-to-close move starting at ``start_day``. Blank unless all N sessions exist."""
+    end, _present, complete = _dated_window(bars, start_day, sessions, calendar)
+    if not complete or end is None:
         return ""
     start = _num(bars.loc[start_day]["close"])
+    finish = _num(bars.loc[end]["close"])
+    if start is None or finish is None:
+        return ""
+    return f"{(finish / start - 1.0) * 100.0:.6f}"
+
+
+def open_to_later_close_percent(bars: pd.DataFrame | None, entry_day: date, sessions: int, calendar) -> str:
+    """Percent from the entry open to the close of the Nth holding session. Blank if short."""
+    if bars is None or bars.empty or entry_day not in bars.index or sessions < 1:
+        return ""
+    end = entry_day if sessions == 1 else session_offset(calendar, entry_day, sessions - 1)
+    if end is None or end not in bars.index:
+        return ""
+    expected = sessions_in(calendar, entry_day, end)
+    if len(expected) != sessions or any(day not in bars.index for day in expected):
+        return ""
+    start = _num(bars.loc[entry_day]["open"])
     finish = _num(bars.loc[end]["close"])
     if start is None or finish is None:
         return ""

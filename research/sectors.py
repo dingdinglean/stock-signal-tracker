@@ -206,6 +206,8 @@ def classify_sector(
         "posterior_rank_change_5d": "",
         "posterior_lead_since": "",
         "posterior_first_top3_date": "",
+        "posterior_first_top3_run_id": "",
+        "posterior_first_top3_published_at": "",
         "posterior_first_rank1_date": "",
         "posterior_sessions_to_top3": "",
         "posterior_role": "description_only_from_the_top3_event_not_from_the_push",
@@ -337,8 +339,11 @@ def _fill_posterior(
             result["posterior_first_rank1_date"] = day.isoformat()
             break
     for day in later_days:
-        if _rank_of(labels, _on_day(snapshots, day, None, allow_later=True)) is not None:
+        snapshot = _on_day(snapshots, day, None, allow_later=True)
+        if _rank_of(labels, snapshot) is not None:
             result["posterior_first_top3_date"] = day.isoformat()
             result["posterior_lead_since"] = day.isoformat()
+            result["posterior_first_top3_run_id"] = str((snapshot or {}).get("run_id") or "")
+            result["posterior_first_top3_published_at"] = str((snapshot or {}).get("run_created_at") or "")
             result["posterior_sessions_to_top3"] = str(len(sessions_in(calendar, market_date + timedelta(days=1), day)))
             break

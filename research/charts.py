@@ -51,6 +51,42 @@ def chart_dates(row: dict) -> dict[str, object]:
     }
 
 
+def ohlc_audit_rows(frame: pd.DataFrame, row: dict, pattern: dict) -> list[dict[str, str]]:
+    """One OHLC row per plotted session so a chart can be checked against the cache."""
+    if frame is None or frame.empty:
+        return []
+    dates = chart_dates(row)
+    anchor = dates["dxdx"] or dates["push"]
+    if anchor is None:
+        return []
+    start = chart_window_start(list(frame.index), anchor, pattern if pattern.get("status") == "double_bottom" else {})
+    if start is None:
+        return []
+    drawn = pattern.get("status") == "double_bottom"
+    rows = []
+    for day, bar in frame.loc[frame.index >= start].iterrows():
+        rows.append({
+            "signal_id": str(row.get("signal_id") or ""),
+            "symbol": str(row.get("symbol") or ""),
+            "cohort": str(row.get("cohort") or ""),
+            "bar_date": pd.Timestamp(day).date().isoformat(),
+            "open": str(bar.get("open", "")),
+            "high": str(bar.get("high", "")),
+            "low": str(bar.get("low", "")),
+            "close": str(bar.get("close", "")),
+            "volume": str(bar.get("volume", "")),
+            "dxdx_date": dates["dxdx"].isoformat() if dates["dxdx"] else "",
+            "push_date": dates["push"].isoformat() if dates["push"] else "",
+            "relation": "before_dxdx" if dates["dxdx"] and pd.Timestamp(day).date() < dates["dxdx"] else (
+                "dxdx_day" if dates["dxdx"] and pd.Timestamp(day).date() == dates["dxdx"] else "after_dxdx_or_push"
+            ),
+            "pattern_status": str(pattern.get("status") or ""),
+            "draws_double_bottom": "yes" if drawn else "no",
+            "price_basis": "Yahoo auto_adjust=False OHLC price return after splits; not Adj Close; not dividend total return",
+        })
+    return rows
+
+
 def chart_window_start(days: list, anchor, pattern: dict):
     """First plotted session: at least 60 bars before ``anchor``, and any earlier low."""
     before = [day for day in days if day < anchor]
@@ -78,10 +114,14 @@ def chart_markers(dates: dict, pattern: dict) -> list[tuple[object, str]]:
             marks.append((signal, "DXDX"))
         if push is not None:
             marks.append((push, "推送"))
-    for key, label in (("low1_date", "低点1"), ("low2_date", "低点2"), ("breakout_date", "信号时突破")):
-        marked = parse_day(pattern.get(key))
-        if marked is not None:
-            marks.append((marked, label))
+    if pattern.get("status") == "double_bottom" or pattern.get("double_bottom") == "yes":
+        for key, label in (("low1_date", "低点1"), ("low2_date", "低点2")):
+            marked = parse_day(pattern.get(key))
+            if marked is not None:
+                marks.append((marked, label))
+    marked = parse_day(pattern.get("breakout_date"))
+    if marked is not None and pattern.get("breakout_state") == "yes":
+        marks.append((marked, "信号时突破"))
     posterior = parse_day(pattern.get("posterior_breakout_date"))
     if posterior is not None:
         marks.append((posterior, "后验突破"))

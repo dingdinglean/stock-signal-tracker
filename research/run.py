@@ -7,7 +7,7 @@ import json
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from research.asof import decision_clocks
+from research.asof import choose_scan_job, decision_clocks
 from research.charts import render_chart
 from research.cohort import assign_cohort
 from research.hypothesis import (
@@ -17,14 +17,15 @@ from research.hypothesis import (
     STUDY_PARAMS,
     WEEKLY_PARAMS,
 )
-from research.market import following_sessions, parse_day, parse_time, xnys
+from research.market import following_sessions, next_entry_session, parse_day, parse_time, xnys
 from research.metrics import assign_splits, build_groups, number, six_answers
 from research.patterns import complete_weeks_only, completed_daily, detect_pattern, posterior_breakout, weekly_bars
 from research.prices import cache_path, fetch_symbol, incremental_start, merge_cache, read_cache
 from research.report import render_html, write_csv
 from research.sectors import candidate_labels, classify_sector
 from research.simulate import (
-    benchmark_return, forward_close_return_percent, ledger_benchmark, path_highwater_percent,
+    benchmark_return, forward_close_return_percent, ledger_benchmark,
+    open_to_later_close_percent, path_highwater_percent, path_highwater_todate,
     scale_warning, simulate_trade,
 )
 
@@ -72,6 +73,21 @@ def _run_meta(run: dict, repo: str, workflow: str) -> dict[str, str]:
         "observed_at": datetime.now(timezone.utc).isoformat(),
         "time_note": "created_at and run_started_at are run-start metadata, not the email time. updated_at is not an as-of clock.",
     }
+
+
+def _points(left: str, right: str) -> str:
+    if not left or not right:
+        return ""
+    try:
+        return f"{float(left) - float(right):.6f}"
+    except ValueError:
+        return ""
+
+
+def _close_return(frame, push: date, sessions: int, calendar) -> str:
+    if frame is None or getattr(frame, "empty", True):
+        return ""
+    return forward_close_return_percent(frame, push, sessions, calendar)
 
 
 def _sha(path: Path) -> str:
@@ -130,20 +146,22 @@ def load_run_index(cache_file: Path, *, fetch: bool, needed: set[str] | None = N
             if payload.get("created_at") or payload.get("run_started_at"):
                 current = _run_meta(payload, "dingdinglean/gupiao", str(payload.get("name") or ""))
                 found[run_id] = current
-        if current.get("job_completed_at"):
+        if current.get("job_completed_at") and current.get("job_id") and current.get("job_completed_source") == "actions_job_completed_at":
             continue
         try:
             jobs = client._get(f"https://api.github.com/repos/dingdinglean/gupiao/actions/runs/{run_id}/jobs?per_page=100").json()
         except GitHubArtifactError as exc:
             errors.append(f"jobs {run_id}: {exc}")
             jobs = {}
-        completed = [str(job.get("completed_at") or "") for job in jobs.get("jobs") or [] if job.get("completed_at")]
-        if completed:
-            current["job_completed_at"] = max(completed)
+        chosen = choose_scan_job(list(jobs.get("jobs") or []))
+        current.pop("job_completed_at", None)
+        current.pop("job_completed_source", None)
+        if chosen is not None:
+            current["job_id"] = str(chosen.get("id") or "")
+            current["job_name"] = str(chosen.get("name") or "")
+            current["job_conclusion"] = str(chosen.get("conclusion") or "")
+            current["job_completed_at"] = str(chosen.get("completed_at") or "")
             current["job_completed_source"] = "actions_job_completed_at"
-        elif current.get("status") == "completed" and current.get("updated_at"):
-            current["job_completed_at"] = current["updated_at"]
-            current["job_completed_source"] = "run_updated_at_because_status_completed"
         if current:
             found[run_id] = current
     if found != saved:
@@ -222,19 +240,52 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
         row["asof_run_started_at"] = str((info or {}).get("run_started_at") or "")
         row["asof_run_updated_at"] = str((info or {}).get("updated_at") or "")
         row["job_completed_at"] = str((info or {}).get("job_completed_at") or "")
+        row["entry_job_id"] = str((info or {}).get("job_id") or "")
+        row["entry_job_name"] = str((info or {}).get("job_name") or "")
+        row["entry_job_conclusion"] = str((info or {}).get("job_conclusion") or "")
+        row["entry_job_source"] = str((info or {}).get("job_completed_source") or "")
+        row["entry_workflow"] = "long_screen.yml" if row.get("source_radar") == "weekly_monthly" else "screen.yml"
+        row["entry_workflow_evidence"] = (
+            "Pinned gupiao commit 3e95f1613f8c36ce1bf986ce07cdfc6fe25ffe34: "
+            "screen.yml and long_screen.yml each run one synchronous scan job before artifacts. "
+            "completed_at is an upper bound on the email, not the send timestamp. updated_at is not used."
+        )
         row["asof_time_source"] = clocks["bar_quality"]
         symbol = row["symbol"].upper()
         frame = frames.get(symbol)
         push = parse_day(row.get("push_date"))
         if index_bars is not None and push is not None:
+            bench5 = ledger_benchmark(index_bars, push, 5, calendar)
             bench10 = ledger_benchmark(index_bars, push, 10, calendar)
             bench20 = ledger_benchmark(index_bars, push, 20, calendar)
+            row["benchmark_5d"] = bench5["percent"]
             row["benchmark_10d"] = bench10["percent"]
             row["benchmark_20d"] = bench20["percent"]
             row["benchmark_20d_start"] = bench20["start"]
             row["benchmark_20d_end"] = bench20["end"]
             row["benchmark_unit"] = "percent"
-            row["benchmark_label"] = "冻结收益与 ^GSPC 都是百分数；窗口是 push_date 收盘到其后第 N 个交易日收盘；不是 SPY，不是分红总收益"
+            row["benchmark_label"] = (
+                "指数是 push_date 收盘到其后第 N 个交易日收盘的百分数，不是 SPY，也不是分红总收益。"
+                "冻结 return_Nd 的起点是 push_price，不保证等于 push_date 收盘，所以冻结收益减指数不叫超额。"
+                "可比超额用同一起点的股票收盘。"
+            )
+            close5 = _close_return(frame, push, 5, calendar)
+            close10 = _close_return(frame, push, 10, calendar)
+            close20 = _close_return(frame, push, 20, calendar)
+            row["comparable_return_5d"] = close5
+            row["comparable_return_10d"] = close10
+            row["comparable_return_20d"] = close20
+            row["comparable_excess_5d"] = _points(close5, bench5["percent"])
+            row["comparable_excess_10d"] = _points(close10, bench10["percent"])
+            row["comparable_excess_20d"] = _points(close20, bench20["percent"])
+            row["return_basis"] = "price_return"
+            row["total_return_used"] = "no"
+            row["adjustment_note"] = (
+                "Yahoo auto_adjust=False 的 Close 是拆股回溯后的价格收益，不含分红，不是 Adj Close 总收益。"
+                "^GSPC 收盘是指数价格收益，不是全收益指数。可比超额只在这一种价格收益口径内相减。"
+            )
+            row["comparable_window_start"] = bench20["start"]
+            row["comparable_window_end"] = bench20["end"]
         else:
             row["benchmark_10d"] = ""
             row["benchmark_20d"] = ""
@@ -242,6 +293,15 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
             row["benchmark_20d_end"] = ""
             row["benchmark_unit"] = "percent"
             row["benchmark_label"] = "benchmark_missing"
+            for field in (
+                "comparable_return_5d", "comparable_return_10d", "comparable_return_20d",
+                "comparable_excess_5d", "comparable_excess_10d", "comparable_excess_20d",
+                "comparable_window_start", "comparable_window_end", "benchmark_5d",
+            ):
+                row[field] = ""
+            row["return_basis"] = "price_return"
+            row["total_return_used"] = "no"
+            row["adjustment_note"] = "行情缺失，没有把 Adj Close 拿来填价格收益。"
         daily_pattern = None
         weekly_pattern = None
         if asof is None or frame is None or getattr(frame, "empty", True):
@@ -280,17 +340,35 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
         row.update(sector)
         row["sector_status"] = {"strong": "strong", "not_strong": "not_strong"}.get(sector["asof_sector_status"], "unknown")
         row["posterior_sector_entered"] = sector["posterior_10d_entered_top3"]
+        row["highwater_dd_5d"] = path_highwater_percent(frame, push, 5, calendar) if push is not None else ""
         row["highwater_dd_10d"] = path_highwater_percent(frame, push, 10, calendar) if push is not None else ""
         row["highwater_dd_20d"] = path_highwater_percent(frame, push, 20, calendar) if push is not None else ""
+        row["highwater_dd_20d_todate"] = path_highwater_todate(frame, push, 20, calendar) if push is not None else ""
+        row["highwater_dd_20d_status"] = "mature" if row["highwater_dd_20d"] else ("censored" if row["highwater_dd_20d_todate"] else "")
+        row["highwater_intraday_order"] = "unknown; high is applied before low, a conservative path assumption"
         event_day = parse_day(row.get("posterior_first_top3_date"))
+        row["return_after_top3_note"] = "事件日收盘起的收益是后验描述。该日收盘时排名尚未发布，不能成交，也不能当成可实现策略结果。"
         if event_day is None or frame is None:
             row["return_after_top3_10d"] = ""
             row["return_after_top3_20d"] = ""
+            row["highwater_dd_after_top3_10d"] = ""
             row["highwater_dd_after_top3_20d"] = ""
+            row["highwater_dd_after_top3_20d_todate"] = ""
+            row["tradable_after_top3_10d"] = ""
+            row["tradable_after_top3_20d"] = ""
+            row["tradable_after_top3_entry_date"] = ""
         else:
             row["return_after_top3_10d"] = forward_close_return_percent(frame, event_day, 10, calendar)
             row["return_after_top3_20d"] = forward_close_return_percent(frame, event_day, 20, calendar)
+            row["highwater_dd_after_top3_10d"] = path_highwater_percent(frame, event_day, 10, calendar)
             row["highwater_dd_after_top3_20d"] = path_highwater_percent(frame, event_day, 20, calendar)
+            row["highwater_dd_after_top3_20d_todate"] = path_highwater_todate(frame, event_day, 20, calendar)
+            published = parse_time(row.get("posterior_first_top3_published_at"))
+            tradable_day = next_entry_session(calendar, published) if published is not None else None
+            row["tradable_after_top3_entry_date"] = tradable_day.isoformat() if tradable_day else ""
+            row["tradable_after_top3_10d"] = open_to_later_close_percent(frame, tradable_day, 10, calendar) if tradable_day else ""
+            row["tradable_after_top3_20d"] = open_to_later_close_percent(frame, tradable_day, 20, calendar) if tradable_day else ""
+            row["tradable_after_top3_note"] = "下一档开盘用的是该事件日快照自己的 run_created_at。没有这个时间，或其后窗口不满，则为未知。不用更晚日期的排名。"
         research_rows.append(row)
         if cohort not in {"daily", "weekly"} or entry_asof is None:
             continue
@@ -301,7 +379,7 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
             ("slippage_only", 0.0, STUDY_PARAMS.slippage_bps),
             ("fee_and_slippage", STUDY_PARAMS.fee_bps, STUDY_PARAMS.slippage_bps),
         )
-        plans = [("barrier_5", "barrier", None), ("hold_10", "hold", 10), ("hold_20", "hold", 20)]
+        plans = [("barrier_5", "barrier", None), ("hold_5", "hold", 5), ("hold_10", "hold", 10), ("hold_20", "hold", 20)]
         for strategy, mode, hold in plans:
             for cost_name, fee, slip in cost_grid:
                 trade = simulate_trade(
@@ -322,6 +400,11 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
                     "scale_warning": warning, "scale_detail": detail,
                     "included_in_mean": "yes" if trade.get("status") == "closed" and warning == "no" else "no",
                     "benchmark_return": bench, "benchmark_note": bench_note,
+                    "entry_rule": (
+                        "next NYSE open at or after scan-job completed_at "
+                        f"{row['entry_job_name']} id {row['entry_job_id']}. "
+                        "Conservative upper bound, not the exact email time, and not created_at."
+                    ),
                     "sample_split": "", "split_cut": "",
                 })
                 sim_rows.append(trade)
@@ -362,7 +445,9 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
         "gupiao_commit": pins.get("gupiao", {}).get("commit", ""),
         "screener_commit": pins.get("strong_pullback_screener", {}).get("commit", ""),
         "sector_history": "data/sector_snapshots.csv 的 market_date 是市场日。run_created_at 只说明该雷达运行何时创建，不作为价格时钟，也不把不完整 Top3 或不同词汇的行业名记成非强势。",
-        "asof_clock": "K线用 created_at/run_started_at 的较早者，这不是发布时间。成交用 job completed_at 保守上界；没有完成时间则不模拟。收盘加 20 分钟。未完成周不进入正式周形态。",
+        "asof_clock": "K线用 created_at/run_started_at 的较早者，这不是发布时间。成交只用可核验的扫描 job completed_at，是保守上界不是精确推送；没有 job id 不模拟，updated_at 不代替。",
+        "maturity": "T+5、T+10、T+20 都在这次独立研究里跟踪。定时 Research dry-run 在追踪提交之后重算，失败不写原账本。",
+        "baseline_policy": "基线仍是 71 条正式推送的原始哈希。之后定时新增的 signal_id 由 publish_changes.merge_history_rows 并入，不删除旧 id。",
         "parameters": CONCLUSION_RULE,
         "costs": f"费用 {STUDY_PARAMS.fee_bps} bps 与滑点 {STUDY_PARAMS.slippage_bps} bps 分开计算，并给出两者都加、以及零成本。没有用全样本搜索这组数字。",
         "artifact_access": "本仓库没有 Pages 站点。完整 HTML/CSV 由 Research dry-run 工作流上传为 Actions artifact，名称 signal-research-report-<run_id>。",
@@ -376,6 +461,16 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
     write_csv(out / "simulations.csv", sim_rows)
     write_csv(out / "coverage.csv", [coverage])
     write_csv(out / "conclusions.csv", answers)
+    from research.charts import ohlc_audit_rows
+    ohlc_rows = []
+    for item in research_rows:
+        if item.get("symbol") not in PRIORITY or item.get("cohort") not in {"daily", "weekly"}:
+            continue
+        prefix = "weekly_" if item.get("cohort") == "weekly" else "daily_"
+        pattern = {"status": item.get("pattern_status"), "double_bottom": item.get(f"{prefix}double_bottom"),
+                   "low1_date": item.get(f"{prefix}low1_date", ""), "low2_date": item.get(f"{prefix}low2_date", "")}
+        ohlc_rows.extend(ohlc_audit_rows(frames.get(item["symbol"].upper()), item, pattern))
+    write_csv(out / "chart_ohlc.csv", ohlc_rows)
     render_html(out / "report.html", coverage=coverage, answers=answers, groups=groups, sims=sim_rows, charts=charts)
     after = _protected(root)
     changed = [rel for rel in PROTECTED if before[rel] != after[rel]]

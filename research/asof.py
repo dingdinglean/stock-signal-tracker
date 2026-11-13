@@ -53,22 +53,38 @@ def decision_clocks(meta: dict | None) -> dict[str, object]:
             "evidence": "没有可核验的运行时间。不把 push_date 或 created_at 编成发布时间。",
         }
     bar, bar_quality, evidence = information_cutoff(meta)
-    completed = parse_time(meta.get("job_completed_at"))
+    source = str(meta.get("job_completed_source") or "")
+    completed = parse_time(meta.get("job_completed_at")) if source == "actions_job_completed_at" else None
     entry = None
     entry_quality = "unknown"
-    if completed is not None:
+    if completed is not None and meta.get("job_id"):
         entry = completed
-        entry_quality = str(meta.get("job_completed_source") or "job_completed_at")
-    elif str(meta.get("status") or "") == "completed":
-        updated = parse_time(meta.get("updated_at"))
-        if updated is not None:
-            entry = updated
-            entry_quality = "run_updated_at_completed"
+        entry_quality = "actions_job_completed_at"
     if entry is None:
-        evidence += " 没有可核验的 completed_at，成交时间保持未知。"
+        evidence += " 没有可核验的扫描 job completed_at，成交时间保持未知。updated_at 不能代替。"
     else:
-        evidence += " 成交使用完成时间的保守上界，不使用 created_at 作为实际发布时刻。"
+        evidence += " 成交使用扫描 job completed_at 的保守上界，不是精确推送时刻，也不是 created_at。"
     return {
         "bar_cutoff": bar, "bar_quality": bar_quality, "entry_cutoff": entry,
         "entry_quality": entry_quality, "evidence": evidence,
     }
+
+
+def choose_scan_job(jobs: list[dict]) -> dict | None:
+    """Pick the single synchronous scan job. Do not use the latest of several jobs.
+
+    The pinned gupiao workflows each have one job that runs the screen and then
+    uploads artifacts. One completed job is that scan. Several jobs are used
+    only when exactly one name identifies the screen. Otherwise the completion
+    time is unverified and the caller must not simulate.
+    """
+    completed = [job for job in jobs if job.get("completed_at") and job.get("id")]
+    if len(completed) == 1:
+        return completed[0]
+    named = [
+        job for job in completed
+        if any(token in str(job.get("name") or "").lower() for token in ("scan", "screen", "long"))
+    ]
+    if len(named) == 1:
+        return named[0]
+    return None

@@ -93,13 +93,17 @@ def summarize(rows: list[dict], *, cohort: str, split: str, name: str, role: str
     mae10 = _values(rows, "mae_10d")
     paired = []
     benchmarks = []
+    comparable = []
     for row in rows:
         left = number(row.get("return_20d"))
         right = number(row.get("benchmark_20d"))
-        if left is None or right is None:
-            continue
-        paired.append(left - right)
-        benchmarks.append(right)
+        if right is not None:
+            benchmarks.append(right)
+        if left is not None and right is not None:
+            paired.append(left - right)
+        stock = number(row.get("comparable_return_20d"))
+        if stock is not None and right is not None:
+            comparable.append(stock - right)
     mature = [row for row in rows if str(row.get("effectiveness") or "") in {"有效", "无效", "中性", "无法判定"}]
     pending = [row for row in rows if str(row.get("effectiveness") or "") in {"", "pending"}]
     cluster: list[float] = []
@@ -126,6 +130,11 @@ def summarize(rows: list[dict], *, cohort: str, split: str, name: str, role: str
         "return_10d_mean": _mean(returns10),
         "return_10d_median": _median(returns10),
         "return_10d_positive_share": _share(sum(value > 0 for value in returns10), len(returns10)),
+        "return_5d_n": str(len(_values(rows, "return_5d"))),
+        "return_5d_mean": _mean(_values(rows, "return_5d")),
+        "return_5d_positive_share": _share(sum(value > 0 for value in _values(rows, "return_5d")), len(_values(rows, "return_5d"))),
+        "highwater_dd_5d_n": str(len(_values(rows, "highwater_dd_5d"))),
+        "highwater_dd_5d_mean": _mean(_values(rows, "highwater_dd_5d")),
         "latest_return_n": str(len(latest)),
         "latest_return_mean": _mean(latest),
         "latest_return_median": _median(latest),
@@ -148,20 +157,27 @@ def summarize(rows: list[dict], *, cohort: str, split: str, name: str, role: str
         "highwater_dd_20d_n": str(len(_values(rows, "highwater_dd_20d"))),
         "highwater_dd_20d_mean": _mean(_values(rows, "highwater_dd_20d")),
         "highwater_dd_20d_worst": f"{min(_values(rows, 'highwater_dd_20d')):.6f}" if _values(rows, "highwater_dd_20d") else "",
+        "highwater_dd_20d_todate_n": str(len(_values(rows, "highwater_dd_20d_todate"))),
+        "highwater_dd_20d_todate_mean": _mean(_values(rows, "highwater_dd_20d_todate")),
+        "highwater_dd_after_top3_20d_n": str(len(_values(rows, "highwater_dd_after_top3_20d"))),
         "return_after_top3_20d_n": str(len(_values(rows, "return_after_top3_20d"))),
         "return_after_top3_20d_mean": _mean(_values(rows, "return_after_top3_20d")),
+        "tradable_after_top3_20d_n": str(len(_values(rows, "tradable_after_top3_20d"))),
+        "tradable_after_top3_20d_mean": _mean(_values(rows, "tradable_after_top3_20d")),
+        "comparable_excess_20d_n": str(len(comparable)),
+        "comparable_excess_20d_mean": _mean(comparable),
         "n_pattern_unknown": str(sum(row.get("pattern_status") == "unknown" for row in rows)),
         "n_sector_unknown": str(sum(row.get("sector_status") == "unknown" for row in rows)),
         "n_sector_known": str(sum(row.get("sector_status") in {"strong", "not_strong"} for row in rows)),
         "benchmark_20d_n": str(len(benchmarks)),
         "benchmark_20d_mean": _mean(benchmarks),
-        "excess_20d_n": str(len(paired)),
-        "excess_20d_mean": _mean(paired),
+        "frozen_minus_index_20d_n": str(len(paired)),
+        "frozen_minus_index_20d_mean": _mean(paired),
         "cluster_symbol_mean_20d": _mean(cluster),
         "immature_20d": str(immature20),
         "missing_quote": str(sum(1 for row in rows if row.get("quote_status") not in {"ok", ""})),
         "small_sample": "yes" if len(rows) < params.min_conclusion or len(symbols) < params.min_symbols or len(returns20) < params.min_conclusion else "no",
-        "denominator_note": "冻结 return_10d/20d 是百分数，分母是该字段有数值的推送，不是队列总 N。^GSPC 对照是同一推送日收盘到其后第 N 个交易日收盘的百分数，超额是百分点。MAE 是相对起点的最低价，不是高水位最大回撤。return_after_top3 从首次进入 Top3 的收盘起算，不用推送日收益冒充。模拟收益是小数，分母是已平仓且口径可用的成交，不与冻结收益混算。",
+        "denominator_note": "冻结 return_Nd 起点是 push_price，不是 push_date 收盘，所以 frozen_minus_index 不叫超额。可比超额是股票 push_date 收盘到同一终点收盘，再减指数。highwater_dd_20d 只含完整 20 日窗口；未成熟在 highwater_dd_20d_todate，分母分开。事件收盘起的收益不可成交。可交易事件收益从该日快照发布时间之后的下一档开盘起算，窗口不满则为空。模拟收益是小数，不与冻结收益混算。",
     }
     return record
 
@@ -274,6 +290,14 @@ def six_answers(groups: list[dict], rows: list[dict], params: StudyParams | None
             f"盈利记录的形态{_mode_line(winners, 'pattern_status')}；板块状态{_mode_line(winners, 'sector_status')}；"
             f"信号时突破{_mode_line(winners, 'breakout_state')}。"
             f"亏损或持平记录的形态{_mode_line(losers, 'pattern_status')}。"
+            f"盈利组：双底 {sum(row.get('pattern_status')=='double_bottom' for row in winners)}/{len(winners) or 0}，"
+            f"平台 {sum(row.get('pattern_status')=='platform' for row in winners)}/{len(winners) or 0}，"
+            f"急跌企稳 {sum(row.get('pattern_status')=='sharp_stabilize' for row in winners)}/{len(winners) or 0}。"
+            f"亏损或持平组：双底 {sum(row.get('pattern_status')=='double_bottom' for row in losers)}/{len(losers) or 0}，"
+            f"平台 {sum(row.get('pattern_status')=='platform' for row in losers)}/{len(losers) or 0}，"
+            f"急跌企稳 {sum(row.get('pattern_status')=='sharp_stabilize' for row in losers)}/{len(losers) or 0}。"
+            "亏损组里也出现的形态不能当过滤。个股先形成形态、之后板块才转强，只是后验，不是入场条件。"
+            f"T+5 成熟分母另见分组 return_5d_n，不并进 20 日分母。"
         )
         winner_patterns = Counter(str(row.get("pattern_status") or "unknown") for row in winners)
         top = winner_patterns.most_common(1)
@@ -340,8 +364,11 @@ def six_answers(groups: list[dict], rows: list[dict], params: StudyParams | None
         post = _find(groups, cohort, "all", "posterior_turned_strong")
         condition_lines.append(
             f"{cohort}/推送后转入强势：出现过精确 Top3 的 N={post.get('n_signals')}，"
-            f"从该事件收盘起的 20 日收益分母 {post.get('return_after_top3_20d_n')}、均值 {_fmt_num(post.get('return_after_top3_20d_mean', ''))}。"
-            "这不是从推送日 return_20d 起算。没有转强事件的记录不进入这个分母。它只是后验描述，不能当入场条件。"
+            f"从该事件收盘起的 20 日收益分母 {post.get('return_after_top3_20d_n')}、均值 {_fmt_num(post.get('return_after_top3_20d_mean', ''))}，"
+            f"对应高水位回撤分母 {post.get('highwater_dd_after_top3_20d_n')}。"
+            "事件日收盘时排名还没发布，这不是可成交收益。可交易口径从该日快照发布时间之后的下一档开盘起算，"
+            f"其 20 日分母 {post.get('tradable_after_top3_20d_n')}、均值 {_fmt_num(post.get('tradable_after_top3_20d_mean', ''))}。"
+            "这不是从推送日 return_20d 起算，也不能当入场条件。"
         )
     add(
         "q5_conditions",

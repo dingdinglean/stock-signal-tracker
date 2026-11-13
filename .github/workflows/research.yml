@@ -91,4 +91,5 @@ jobs:
             output/research/simulations.csv
             output/research/coverage.csv
             output/research/conclusions.csv
+            output/research/chart_ohlc.csv
           if-no-files-found: warn
