@@ -80,6 +80,8 @@ def _availability(snapshot: dict) -> datetime | None:
     scan job that publishes it has ``completed_at``, with a job id. ``updated_at``
     and the start time are not substitutes.
     """
+    if str(snapshot.get("job_conclusion") or "").lower() != "success":
+        return None
     if str(snapshot.get("availability_source") or "") != "actions_job_completed_at":
         return None
     if not str(snapshot.get("job_id") or "").strip():
@@ -88,10 +90,12 @@ def _availability(snapshot: dict) -> datetime | None:
 
 
 def _usable(snapshot: dict, asof: datetime | None, *, allow_later: bool) -> bool:
+    available = _availability(snapshot)
+    if available is None:
+        return False
     if allow_later:
         return True
-    available = _availability(snapshot)
-    if available is None or asof is None:
+    if asof is None:
         return False
     return available <= asof
 

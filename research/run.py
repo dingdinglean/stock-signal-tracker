@@ -100,7 +100,11 @@ def load_strength_jobs(cache_file: Path, run_ids: set[str], *, fetch: bool) -> d
     ids.update(str(run.get("id")) for run in runs if run.get("id"))
     for run_id in sorted(ids):
         current = found.get(run_id, {})
-        if current.get("job_id") and current.get("job_completed_source") == "actions_job_completed_at":
+        if (
+            current.get("job_id")
+            and current.get("job_completed_source") == "actions_job_completed_at"
+            and str(current.get("job_conclusion") or "").lower() == "success"
+        ):
             continue
         try:
             jobs = client._get(f"https://api.github.com/repos/dingdinglean/strong-pullback-screener/actions/runs/{run_id}/jobs?per_page=100").json()
@@ -130,7 +134,12 @@ def _with_strength_availability(snapshots: list[dict[str, str]], jobs: dict[str,
     for row in snapshots:
         item = dict(row)
         meta = jobs.get(str(row.get("run_id") or ""), {})
-        if meta.get("job_completed_source") == "actions_job_completed_at" and meta.get("job_id") and meta.get("job_completed_at"):
+        if (
+            meta.get("job_completed_source") == "actions_job_completed_at"
+            and meta.get("job_id")
+            and meta.get("job_completed_at")
+            and str(meta.get("job_conclusion") or "").lower() == "success"
+        ):
             item["available_at"] = meta["job_completed_at"]
             item["availability_source"] = "actions_job_completed_at"
             item["job_id"] = meta["job_id"]
@@ -161,6 +170,14 @@ def _sha(path: Path) -> str:
 
 def _protected(root: Path) -> dict[str, str]:
     return {rel: _sha(root / rel) for rel in PROTECTED}
+
+
+def _baseline_ids(root: Path) -> set[str]:
+    path = root / "research" / "baseline_frozen_ids.json"
+    if not path.exists():
+        return set()
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return set(payload.get("rows") or {})
 
 
 def _read_csv(path: Path) -> list[dict[str, str]]:
@@ -211,7 +228,12 @@ def load_run_index(cache_file: Path, *, fetch: bool, needed: set[str] | None = N
             if payload.get("created_at") or payload.get("run_started_at"):
                 current = _run_meta(payload, "dingdinglean/gupiao", str(payload.get("name") or ""))
                 found[run_id] = current
-        if current.get("job_completed_at") and current.get("job_id") and current.get("job_completed_source") == "actions_job_completed_at":
+        if (
+            current.get("job_completed_at")
+            and current.get("job_id")
+            and current.get("job_completed_source") == "actions_job_completed_at"
+            and str(current.get("job_conclusion") or "").lower() == "success"
+        ):
             continue
         try:
             jobs = client._get(f"https://api.github.com/repos/dingdinglean/gupiao/actions/runs/{run_id}/jobs?per_page=100").json()
@@ -271,10 +293,19 @@ def _study_pattern(cohort: str, daily_pattern, weekly_pattern) -> tuple[str, str
     return chosen.status, chosen.breakout_state
 
 
-def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -> tuple[int, dict]:
+def execute(
+    root: Path,
+    *,
+    full: bool,
+    fetch: bool,
+    today: date | None = None,
+    history_file: Path | None = None,
+) -> tuple[int, dict]:
     today = today or datetime.now(timezone.utc).date()
     before = _protected(root)
-    history = _read_csv(root / "data" / "signal_history.csv")
+    history_path = history_file or (root / "data" / "signal_history.csv")
+    history = _read_csv(history_path)
+    baseline_ids = _baseline_ids(root)
     frozen = [(row.get("signal_id"), row.get("push_price"), row.get("signal_price")) for row in history]
     raw_snapshots = _read_csv(root / "data" / "sector_snapshots.csv")
     snapshots = _with_strength_availability(
@@ -299,6 +330,7 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
         cohort = assign_cohort(event)
         row = {field: event.get(field, "") for field in LEDGER_FIELDS}
         row["cohort"] = cohort
+        row["ledger_membership"] = "baseline_71" if row["signal_id"] in baseline_ids else "appended"
         row["loss_hide_applied"] = "no"
         info = run_index.get(str(event.get("source_run_id") or ""))
         clocks = decision_clocks(info)
@@ -324,6 +356,8 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
             "completed_at is an upper bound on the email, not the send timestamp. updated_at is not used."
         )
         row["asof_time_source"] = clocks["bar_quality"]
+        row["sector_asof_time"] = row["asof_time"]
+        row["sector_asof_rule"] = "信号前板块使用 created_at 与 run_started_at 的较早者。成功扫描 job 的 completed_at 只用于成交，不把更晚的排名当成信号时已知。"
         symbol = row["symbol"].upper()
         frame = frames.get(symbol)
         push = parse_day(row.get("push_date"))
@@ -409,7 +443,7 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
         status, breakout = _study_pattern(cohort, daily_pattern, weekly_pattern)
         row["pattern_status"] = status
         row["breakout_state"] = breakout
-        sector = classify_sector(candidate_labels(event), snapshots, push, entry_asof, calendar, SECTOR_PARAMS, now)
+        sector = classify_sector(candidate_labels(event), snapshots, push, asof, calendar, SECTOR_PARAMS, now)
         row.update(sector)
         row["sector_status"] = {"strong": "strong", "not_strong": "not_strong"}.get(sector["asof_sector_status"], "unknown")
         row["posterior_sector_entered"] = sector["posterior_10d_entered_top3"]
@@ -478,9 +512,10 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
                     "included_in_mean": "yes" if trade.get("status") == "closed" and warning == "no" else "no",
                     "benchmark_return": bench, "benchmark_note": bench_note,
                     "entry_rule": (
-                        "next NYSE open at or after scan-job completed_at "
+                        "next NYSE open at or after successful scan-job completed_at "
                         f"{row['entry_job_name']} id {row['entry_job_id']}. "
-                        "Conservative upper bound, not the exact email time, and not created_at."
+                        "Conservative upper bound, not the exact email time, and not created_at. "
+                        "Signal-time sector uses the earlier created_at/run_started_at proxy."
                     ),
                     "sample_split": "", "split_cut": "",
                 })
@@ -489,8 +524,27 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
     split_of = {row["signal_id"]: (row.get("sample_split", ""), row.get("split_cut", "")) for row in research_rows}
     for trade in sim_rows:
         trade["sample_split"], trade["split_cut"] = split_of.get(trade["signal_id"], ("", ""))
-    groups = build_groups(research_rows, STUDY_PARAMS)
-    answers = six_answers(groups, research_rows, STUDY_PARAMS)
+    baseline_rows = [row for row in research_rows if row["signal_id"] in baseline_ids]
+    groups: list[dict] = []
+    answers: list[dict] = []
+    if baseline_rows:
+        baseline_groups = build_groups(baseline_rows, STUDY_PARAMS)
+        for item in baseline_groups:
+            item["ledger_scope"] = "baseline_71"
+        groups.extend(baseline_groups)
+        for item in six_answers(baseline_groups, baseline_rows, STUDY_PARAMS):
+            item["ledger_scope"] = "baseline_71"
+            item["answer"] = "账本范围 baseline_71，只含原冻结 signal_id，不含之后追加的正式推送。" + item["answer"]
+            answers.append(item)
+    current_scope = f"current_{len(history)}"
+    current_groups = build_groups(research_rows, STUDY_PARAMS)
+    for item in current_groups:
+        item["ledger_scope"] = current_scope
+    groups.extend(current_groups)
+    for item in six_answers(current_groups, research_rows, STUDY_PARAMS):
+        item["ledger_scope"] = current_scope
+        item["answer"] = f"账本范围 {current_scope}，含原冻结记录和之后追加的正式推送。" + item["answer"]
+        answers.append(item)
     charts = _charts(chart_inputs, research_rows, price_errors)
     pins = {}
     pin_path = root / "research" / "source_pins.json"
@@ -501,10 +555,26 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
     if manifest_path.exists():
         baseline_sha = json.loads(manifest_path.read_text(encoding="utf-8")).get("git_sha", "")
     study = [row for row in research_rows if row["cohort"] in {"daily", "weekly"}]
+    appended = [row for row in research_rows if row["signal_id"] not in baseline_ids]
+    appended_text = " | ".join(
+        f"{row['signal_id']} {row['symbol']} cohort={row['cohort']} signal={row.get('signal_date')} "
+        f"push={row.get('push_date')} price={row.get('push_price')} run={row.get('source_run_id')} "
+        f"return_5d={row.get('return_5d') or 'immature'} return_10d={row.get('return_10d') or 'immature'} "
+        f"return_20d={row.get('return_20d') or 'immature'}"
+        for row in appended
+    ) or "none"
     coverage = {
         "baseline_git_sha": baseline_sha,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "ledger_input": str(history_path),
         "formal_pushes": str(len(history)),
+        "baseline_formal_pushes": str(sum(row["signal_id"] in baseline_ids for row in research_rows)),
+        "current_formal_pushes": str(len(history)),
+        "appended_formal_pushes": appended_text,
+        "baseline_daily_study": str(sum(row["cohort"] == "daily" for row in baseline_rows)),
+        "baseline_weekly_study": str(sum(row["cohort"] == "weekly" for row in baseline_rows)),
+        "current_daily_study": str(sum(row["cohort"] == "daily" for row in research_rows)),
+        "current_weekly_study": str(sum(row["cohort"] == "weekly" for row in research_rows)),
         "daily_study": str(sum(row["cohort"] == "daily" for row in research_rows)),
         "weekly_study": str(sum(row["cohort"] == "weekly" for row in research_rows)),
         "monthly_excluded": str(sum(row["cohort"] == "monthly_excluded" for row in research_rows)),
@@ -522,7 +592,7 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
         "gupiao_commit": pins.get("gupiao", {}).get("commit", ""),
         "screener_commit": pins.get("strong_pullback_screener", {}).get("commit", ""),
         "sector_history": "data/sector_snapshots.csv 的 market_date 是市场日。run_created_at 只说明该雷达运行何时创建，不作为价格时钟，也不把不完整 Top3 或不同词汇的行业名记成非强势。",
-        "asof_clock": "K线用 created_at/run_started_at 的较早者，这不是发布时间。成交只用可核验的扫描 job completed_at，是保守上界不是精确推送；没有 job id 不模拟，updated_at 不代替。",
+        "asof_clock": "K线用 created_at/run_started_at 的较早者，这不是发布时间。信号前板块用同一个较早代理，不用扫描 job 完成上界。成交只用成功扫描 job 的 completed_at；失败、取消或没有 job id 不模拟。updated_at 不代替。",
         "maturity": "T+5、T+10、T+20 都在这次独立研究里跟踪。定时 Research dry-run 在追踪提交之后重算，失败不写原账本。",
         "baseline_policy": "基线仍是 71 条正式推送的原始哈希。之后定时新增的 signal_id 由 publish_changes.merge_history_rows 并入，不删除旧 id。",
         "parameters": CONCLUSION_RULE,
@@ -606,10 +676,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--full", action="store_true", help="fail if a study symbol has no price or no as-of clock")
     parser.add_argument("--dry-run", action="store_true", help="same research, still no email and no ledger writes; gaps do not fail the process")
     parser.add_argument("--skip-network", action="store_true", help="use only the local cache")
+    parser.add_argument("--history", type=Path, default=None, help="read this ledger instead of data/signal_history.csv; the file is never written")
     args = parser.parse_args(argv)
     if not args.full and not args.dry_run:
         args.dry_run = True
-    code, coverage = execute(ROOT, full=args.full, fetch=not args.skip_network)
+    code, coverage = execute(ROOT, full=args.full, fetch=not args.skip_network, history_file=args.history)
     print(json.dumps(coverage, ensure_ascii=False, indent=2))
     return code
 

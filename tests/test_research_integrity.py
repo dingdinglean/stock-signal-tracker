@@ -52,6 +52,42 @@ def test_baseline_hashes_and_every_formal_push_keeps_its_cohort():
     for cohort, count in expected.items():
         assert sum(assign_cohort(row) == cohort for row in baseline) == count
         assert sum(assign_cohort(row) == cohort for row in rows) >= count
+    milestones = json.loads((ROOT / "research" / "baseline_milestones.json").read_text(encoding="utf-8"))
+    assert_frozen_milestones(rows, milestones)
+    assert set(milestones["rows"]) == set(frozen["rows"])
+    assert int(milestones["filled_cells"]) > 0
+    assert int(milestones["empty_cells"]) > 0
+
+
+def assert_frozen_milestones(rows: list[dict], milestones: dict) -> None:
+    """Non-empty baseline T+N / MFE / MAE stay put. Empty cells may mature. New ids are kept."""
+    by_id = {row["signal_id"]: row for row in rows}
+    assert set(milestones["rows"]) <= set(by_id)
+    for signal_id, pinned in milestones["rows"].items():
+        current = by_id[signal_id]
+        for field, expected in pinned.items():
+            assert current.get(field, "") == expected, (signal_id, field, expected, current.get(field, ""))
+
+
+def test_empty_milestones_may_mature_and_new_ids_stay():
+    milestones = {
+        "fields": ["return_5d", "return_10d", "mfe_10d", "mae_10d"],
+        "rows": {"old": {"return_5d": "1.25"}},
+        "filled_cells": 1,
+        "empty_cells": 3,
+    }
+    current = [
+        {"signal_id": "old", "return_5d": "1.25", "return_10d": "6.496", "mfe_10d": "9.136", "mae_10d": "-1.534", "latest_return": "8.0", "display_state": "hidden"},
+        {"signal_id": "new-scheduled", "return_5d": "3.0", "latest_return": "3.0", "latest_price": "120"},
+    ]
+    assert_frozen_milestones(current, milestones)
+    changed = [dict(current[0], return_5d="9.9"), current[1]]
+    try:
+        assert_frozen_milestones(changed, milestones)
+    except AssertionError as exc:
+        assert "return_5d" in str(exc)
+    else:
+        raise AssertionError("a filled milestone was rewritten")
 
 
 def test_research_runner_and_workflows_do_not_send_mail_or_retune_dxdx():

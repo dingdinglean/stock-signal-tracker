@@ -58,10 +58,15 @@ def test_entry_after_completion_skips_an_open_the_run_crossed():
         "created_at": "2026-07-06T13:00:00Z", "run_started_at": "2026-07-06T13:05:00Z",
         "status": "completed", "updated_at": "2026-07-06T14:00:00Z",
         "job_completed_at": "2026-07-06T14:00:00Z", "job_completed_source": "actions_job_completed_at",
-        "job_id": "99", "job_name": "scan",
+        "job_id": "99", "job_name": "scan", "job_conclusion": "success",
     })
     assert clocks["bar_cutoff"] == datetime(2026, 7, 6, 13, 0, tzinfo=timezone.utc)
     assert clocks["entry_cutoff"] == datetime(2026, 7, 6, 14, 0, tzinfo=timezone.utc)
+    assert decision_clocks({
+        "created_at": "2026-07-06T13:00:00Z", "run_started_at": "2026-07-06T13:05:00Z",
+        "job_completed_at": "2026-07-06T14:00:00Z", "job_completed_source": "actions_job_completed_at",
+        "job_id": "99", "job_name": "scan", "job_conclusion": "failure",
+    })["entry_cutoff"] is None
     assert decision_clocks({"created_at": "2026-07-06T13:00:00Z", "status": "completed", "updated_at": "2026-07-06T14:00:00Z"})["entry_cutoff"] is None
     assert "source-run created_at" not in simulate_trade(bars, after_open, calendar, mode="hold", hold_sessions=1)["entry_rule"]
 
@@ -181,6 +186,8 @@ def test_scan_job_is_required_and_updated_at_is_not_a_fill_clock():
         {"id": 2, "name": "docs", "completed_at": "2026-07-06T15:00:00Z"},
     ]) is None
     assert choose_scan_job([]) is None
+    assert choose_scan_job([{"id": 7, "name": "scan", "completed_at": "2026-07-06T14:00:00Z", "conclusion": "failure"}]) is None
+    assert choose_scan_job([{"id": 8, "name": "scan", "completed_at": "2026-07-06T14:00:00Z", "conclusion": "cancelled"}]) is None
 
 
 def test_a_newly_appended_formal_push_is_not_dropped():

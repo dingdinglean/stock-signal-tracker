@@ -55,15 +55,16 @@ def decision_clocks(meta: dict | None) -> dict[str, object]:
     bar, bar_quality, evidence = information_cutoff(meta)
     source = str(meta.get("job_completed_source") or "")
     completed = parse_time(meta.get("job_completed_at")) if source == "actions_job_completed_at" else None
+    conclusion = str(meta.get("job_conclusion") or "").lower()
     entry = None
     entry_quality = "unknown"
-    if completed is not None and meta.get("job_id"):
+    if completed is not None and meta.get("job_id") and conclusion == "success":
         entry = completed
         entry_quality = "actions_job_completed_at"
     if entry is None:
-        evidence += " 没有可核验的扫描 job completed_at，成交时间保持未知。updated_at 不能代替。"
+        evidence += " 没有成功的扫描 job completed_at，成交时间保持未知。失败或取消的 job 不能成交。updated_at 不能代替。"
     else:
-        evidence += " 成交使用扫描 job completed_at 的保守上界，不是精确推送时刻，也不是 created_at。"
+        evidence += " 成交使用成功扫描 job completed_at 的保守上界，不是精确推送时刻，也不是 created_at。信号前板块不用这个上界。"
     return {
         "bar_cutoff": bar, "bar_quality": bar_quality, "entry_cutoff": entry,
         "entry_quality": entry_quality, "evidence": evidence,
@@ -71,14 +72,18 @@ def decision_clocks(meta: dict | None) -> dict[str, object]:
 
 
 def choose_scan_job(jobs: list[dict]) -> dict | None:
-    """Pick the single synchronous scan job. Do not use the latest of several jobs.
+    """Pick the single successful synchronous scan job. Do not use the latest of several jobs.
 
     The pinned gupiao workflows each have one job that runs the screen and then
-    uploads artifacts. One completed job is that scan. Several jobs are used
-    only when exactly one name identifies the screen. Otherwise the completion
-    time is unverified and the caller must not simulate.
+    uploads artifacts. One successful completed job is that scan. A failure or
+    cancellation with an id and ``completed_at`` is not a publication time.
+    Several successful jobs are used only when exactly one name identifies the
+    screen. Otherwise the completion time is unverified and the caller must not simulate.
     """
-    completed = [job for job in jobs if job.get("completed_at") and job.get("id")]
+    completed = [
+        job for job in jobs
+        if job.get("completed_at") and job.get("id") and str(job.get("conclusion") or "").lower() == "success"
+    ]
     if len(completed) == 1:
         return completed[0]
     named = [

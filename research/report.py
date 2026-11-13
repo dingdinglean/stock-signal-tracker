@@ -106,6 +106,7 @@ def render_html(
     charts: list[dict],
 ) -> None:
     group_columns = [
+        ("ledger_scope", "账本范围"),
         ("cohort", "周期"),
         ("sample_split", "样本"),
         ("group", "分组"),
@@ -157,7 +158,7 @@ def render_html(
     parts.append("</ul><h2>六个问题</h2>")
     for answer in answers:
         parts.append(
-            f"<div class=\"answer\"><b>{html.escape(answer['question'])}</b>"
+            f"<div class=\"answer\"><b>{html.escape(str(answer.get('ledger_scope') or ''))} {html.escape(answer['question'])}</b>"
             f"<p>{html.escape(answer['answer'])}</p>"
             f"<p>{html.escape(answer['rule'])}</p></div>"
         )
