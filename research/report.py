@@ -69,9 +69,30 @@ def _sim_summary(sim_rows: list[dict]) -> list[dict]:
                 "net_mean_conservative": f"{sum(nets) / len(nets):.6f}" if nets else "",
                 "excess_mean": f"{sum(excess) / len(excess):.6f}" if excess else "",
                 "highwater_drawdown_mean": f"{sum(drawdowns) / len(drawdowns):.6f}" if drawdowns else "",
-                "note": "主结果用同日双触的止损优先；乐观列是止盈优先。右删失不进均值。基准是 ^GSPC，不是 SPY。",
+                "note": "±5% 与固定持有 10/20 日分开。费用和滑点分列。同日双触的主结果是止损优先，乐观列是止盈优先。右删失不进均值。基准是同一入场日至出场日的 ^GSPC 开盘到收盘价格收益，不是 SPY，也不是分红总收益。",
             }
         )
+    return summary
+
+
+def _sim_sector_summary(sim_rows: list[dict]) -> list[dict]:
+    grouped: dict[tuple, list[dict]] = {}
+    for row in sim_rows:
+        if row.get("cost_mode") not in {"zero", "fee_and_slippage"}:
+            continue
+        key = (row.get("cohort"), row.get("sector_status"), row.get("strategy"), row.get("cost_mode"))
+        grouped.setdefault(key, []).append(row)
+    summary = []
+    for (cohort, sector, strategy, cost), rows in sorted(grouped.items(), key=lambda item: tuple(str(part) for part in item[0])):
+        closed = [row for row in rows if row.get("status") == "closed" and row.get("included_in_mean") == "yes"]
+        drawdowns = [float(row["highwater_drawdown"]) for row in closed if row.get("highwater_drawdown")]
+        returns = [float(row["gross_return"]) for row in closed if row.get("gross_return")]
+        summary.append({
+            "cohort": cohort, "sector_status": sector, "strategy": strategy, "cost_mode": cost,
+            "n_closed": len(closed),
+            "highwater_drawdown_mean": f"{sum(drawdowns) / len(drawdowns):.6f}" if drawdowns else "",
+            "gross_mean_conservative": f"{sum(returns) / len(returns):.6f}" if returns else "",
+        })
     return summary
 
 
@@ -96,12 +117,20 @@ def render_html(
         ("return_20d_mean", "20日均值"),
         ("return_20d_median", "20日中位"),
         ("return_10d_positive_share", "10日正收益占比"),
+        ("return_20d_positive_share", "20日正收益占比"),
         ("first_plus_5_share", "先+5%"),
         ("first_minus_5_share", "先-5%"),
         ("ambiguous_share", "同日双触"),
+        ("mfe_10d_mean", "MFE10"),
+        ("mae_10d_mean", "MAE10"),
         ("mfe_20d_mean", "MFE20"),
         ("mae_20d_mean", "MAE20"),
-        ("mae_20d_worst", "最差MAE"),
+        ("highwater_dd_20d_mean", "高水位回撤20"),
+        ("highwater_dd_20d_worst", "最差高水位回撤"),
+        ("return_after_top3_20d_n", "转强后20日分母"),
+        ("return_after_top3_20d_mean", "转强后20日均值"),
+        ("n_sector_known", "板块已知"),
+        ("n_sector_unknown", "板块未知"),
         ("benchmark_20d_mean", "^GSPC"),
         ("excess_20d_mean", "超额"),
         ("cluster_symbol_mean_20d", "股票等权"),
@@ -137,6 +166,12 @@ def render_html(
         ("n_rows", "行数"), ("n_closed", "已平仓"), ("n_censored", "右删失"), ("n_excluded_scale", "口径排除"),
         ("n_ambiguous", "双触"), ("gross_mean_conservative", "保守毛收益"), ("gross_mean_optimistic", "乐观毛收益"),
         ("net_mean_conservative", "保守净收益"), ("excess_mean", "超额"), ("highwater_drawdown_mean", "高水位回撤"),
+    ]))
+    parts.append("<h2>按研究板块状态的模拟高水位回撤</h2>")
+    parts.append("<p>这里的高水位回撤来自独立模拟的成交路径，不是冻结 MAE。未知板块不并入非强势。冻结收益的分母与这些成交行数不同。</p>")
+    parts.append(_table(_sim_sector_summary(sims), [
+        ("cohort", "周期"), ("sector_status", "板块"), ("strategy", "策略"), ("cost_mode", "成本"),
+        ("n_closed", "已平仓"), ("highwater_drawdown_mean", "高水位回撤"), ("gross_mean_conservative", "保守毛收益"),
     ]))
     parts.append("<h2>案例蜡烛图</h2>")
     for chart in charts:

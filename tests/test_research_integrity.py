@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from notifications import timeframe_label
+from dynamic_tracking import strategy_statistics
+from notifications import prepare_email_data, timeframe_label
 
 from research.cohort import assign_cohort
 from research.run import PROTECTED, _read_csv, _sha
@@ -49,6 +50,22 @@ def test_research_runner_and_workflows_do_not_send_mail_or_retune_dxdx():
     workflow = (ROOT / ".github" / "workflows" / "research.yml").read_text(encoding="utf-8")
     assert "SMTP" not in workflow
     assert "research_dry_run" in workflow
+    assert "cron:" in workflow
+    assert "actions/cache/restore@v4" in workflow
+    assert "research-price-v1-" in workflow
     tracker = (ROOT / ".github" / "workflows" / "tracker.yml").read_text(encoding="utf-8")
     assert "python tracker.py" in tracker
     assert "research.run" not in tracker
+
+
+def test_real_ledger_statistics_keep_hidden_losses_and_do_not_mail():
+    rows = _read_csv(ROOT / "data" / "signal_history.csv")
+    stats = strategy_statistics(rows)
+    hidden = [row for row in rows if row.get("display_state") == "hidden"]
+    hidden_losses = [row for row in hidden if row.get("latest_return") and float(row["latest_return"]) < 0]
+    assert stats["total"] == 71
+    assert hidden_losses
+    assert stats["loss"] >= len(hidden_losses)
+    prepared = prepare_email_data([], rows)
+    assert all(row.get("display_state") != "hidden" for row in prepared.display_history)
+    assert len(prepared.all_history) == 71

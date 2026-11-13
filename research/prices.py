@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -87,6 +88,18 @@ def merge_cache(path: Path, fresh: pd.DataFrame | None) -> tuple[pd.DataFrame, b
     combined = combined[~combined.index.duplicated(keep="first")]
     write_cache(path, combined)
     return read_cache(path), True
+
+
+def incremental_start(cached: pd.DataFrame, full_start: str, overlap_days: int = 10) -> str:
+    """Request only the overlap after the last cached session, not the whole history."""
+    if cached is None or cached.empty:
+        return full_start
+    last = cached.index[-1]
+    start = last - timedelta(days=overlap_days)
+    floor = date.fromisoformat(full_start)
+    if start < floor:
+        start = floor
+    return start.isoformat()
 
 
 def fetch_symbol(symbol: str, start: str, end: str) -> tuple[pd.DataFrame | None, str]:

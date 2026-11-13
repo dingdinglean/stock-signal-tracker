@@ -67,10 +67,14 @@ def assign_splits(rows: list[dict], calendar, params: StudyParams | None = None)
             push = parse_day(row["push_date"])
             assert push is not None
             row["split_cut"] = cut.isoformat()
+            row["embargo_sessions"] = str(params.embargo_sessions)
+            window_end = session_offset(calendar, push, params.embargo_sessions)
+            row["label_window_end"] = window_end.isoformat() if window_end else ""
             if push >= cut:
                 row["sample_split"] = "oos"
                 continue
-            window_end = session_offset(calendar, push, params.embargo_sessions)
+            # Hold-20 exits on this session when entry is the next open after the push.
+            # A missing session or a window that reaches the cut is purged, not kept in train.
             if window_end is None or window_end >= cut:
                 row["sample_split"] = "purged"
             else:
@@ -85,6 +89,8 @@ def summarize(rows: list[dict], *, cohort: str, split: str, name: str, role: str
     latest = _values(rows, "latest_return")
     mfe = _values(rows, "mfe_20d")
     mae = _values(rows, "mae_20d")
+    mfe10 = _values(rows, "mfe_10d")
+    mae10 = _values(rows, "mae_10d")
     paired = []
     benchmarks = []
     for row in rows:
@@ -114,6 +120,7 @@ def summarize(rows: list[dict], *, cohort: str, split: str, name: str, role: str
         "return_20d_mean": _mean(returns20),
         "return_20d_median": _median(returns20),
         "return_20d_win_rate": _share(sum(value > 0 for value in returns20), len(returns20)),
+        "return_20d_positive_share": _share(sum(value > 0 for value in returns20), len(returns20)),
         "return_20d_se_independent": _se(returns20),
         "return_10d_n": str(len(returns10)),
         "return_10d_mean": _mean(returns10),
@@ -129,11 +136,23 @@ def summarize(rows: list[dict], *, cohort: str, split: str, name: str, role: str
         "ambiguous_share": _share(sum(row.get("effectiveness") == "无法判定" for row in mature), len(mature)),
         "neutral_share": _share(sum(row.get("effectiveness") == "中性" for row in mature), len(mature)),
         "pending_n": str(len(pending)),
+        "mfe_10d_n": str(len(mfe10)),
+        "mfe_10d_mean": _mean(mfe10),
+        "mae_10d_n": str(len(mae10)),
+        "mae_10d_mean": _mean(mae10),
         "mfe_20d_n": str(len(mfe)),
         "mfe_20d_mean": _mean(mfe),
         "mae_20d_n": str(len(mae)),
         "mae_20d_mean": _mean(mae),
         "mae_20d_worst": f"{min(mae):.6f}" if mae else "",
+        "highwater_dd_20d_n": str(len(_values(rows, "highwater_dd_20d"))),
+        "highwater_dd_20d_mean": _mean(_values(rows, "highwater_dd_20d")),
+        "highwater_dd_20d_worst": f"{min(_values(rows, 'highwater_dd_20d')):.6f}" if _values(rows, "highwater_dd_20d") else "",
+        "return_after_top3_20d_n": str(len(_values(rows, "return_after_top3_20d"))),
+        "return_after_top3_20d_mean": _mean(_values(rows, "return_after_top3_20d")),
+        "n_pattern_unknown": str(sum(row.get("pattern_status") == "unknown" for row in rows)),
+        "n_sector_unknown": str(sum(row.get("sector_status") == "unknown" for row in rows)),
+        "n_sector_known": str(sum(row.get("sector_status") in {"strong", "not_strong"} for row in rows)),
         "benchmark_20d_n": str(len(benchmarks)),
         "benchmark_20d_mean": _mean(benchmarks),
         "excess_20d_n": str(len(paired)),
@@ -142,7 +161,7 @@ def summarize(rows: list[dict], *, cohort: str, split: str, name: str, role: str
         "immature_20d": str(immature20),
         "missing_quote": str(sum(1 for row in rows if row.get("quote_status") not in {"ok", ""})),
         "small_sample": "yes" if len(rows) < params.min_conclusion or len(symbols) < params.min_symbols or len(returns20) < params.min_conclusion else "no",
-        "denominator_note": "收益分母是该字段有限数值的推送数，不是全组 N；未成熟、停牌和无法判定不计入对应分子。重复信号的标准误按独立样本计算，会低估不确定度，所以同时给出股票等权均值。",
+        "denominator_note": "冻结 return_10d/20d 是百分数，分母是该字段有数值的推送，不是队列总 N。^GSPC 对照是同一推送日收盘到其后第 N 个交易日收盘的百分数，超额是百分点。MAE 是相对起点的最低价，不是高水位最大回撤。return_after_top3 从首次进入 Top3 的收盘起算，不用推送日收益冒充。模拟收益是小数，分母是已平仓且口径可用的成交，不与冻结收益混算。",
     }
     return record
 
@@ -260,6 +279,7 @@ def six_answers(groups: list[dict], rows: list[dict], params: StudyParams | None
         top = winner_patterns.most_common(1)
         tied = len(top) == 0 or sum(value == top[0][1] for value in winner_patterns.values()) > 1
         majority = bool(top) and top[0][1] * 2 > len(winners)
+        text += f"20日成熟分母是 {len(winners) + len(losers)}，不是研究样本总数 {len(sample)}。"
         if len(winners) < params.min_descriptive:
             text += "盈利样本少于 8。即便某个标签在这几条里重复出现，也不是可以称为共性的结果，这里不下结论。"
         elif tied or not majority:
@@ -319,8 +339,9 @@ def six_answers(groups: list[dict], rows: list[dict], params: StudyParams | None
             )
         post = _find(groups, cohort, "all", "posterior_turned_strong")
         condition_lines.append(
-            f"{cohort}/推送后转入强势：N={post.get('n_signals')}，这是后验描述。"
-            "信号之后才知道板块是否转强，用它筛入场会有 immortal-time 偏差，因此不把它当成提高收益的入场条件。"
+            f"{cohort}/推送后转入强势：出现过精确 Top3 的 N={post.get('n_signals')}，"
+            f"从该事件收盘起的 20 日收益分母 {post.get('return_after_top3_20d_n')}、均值 {_fmt_num(post.get('return_after_top3_20d_mean', ''))}。"
+            "这不是从推送日 return_20d 起算。没有转强事件的记录不进入这个分母。它只是后验描述，不能当入场条件。"
         )
     add(
         "q5_conditions",

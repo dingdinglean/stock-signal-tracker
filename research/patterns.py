@@ -266,6 +266,13 @@ def posterior_breakout(bars: pd.DataFrame, pattern: PatternResult) -> dict[str, 
     return {"posterior_breakout_state": "no", "posterior_breakout_date": ""}
 
 
+def complete_weeks_only(weekly: pd.DataFrame) -> pd.DataFrame:
+    """Drop an unfinished week. Official weekly patterns do not use that bar."""
+    if weekly is None or weekly.empty or "week_complete" not in weekly.columns:
+        return weekly
+    return weekly.loc[weekly["week_complete"].astype(bool)].copy()
+
+
 def completed_daily(frame: pd.DataFrame, asof, calendar, buffer_minutes: int = 20) -> pd.DataFrame:
     """Drop every session whose official close was not knowable at ``asof``."""
     if frame is None or frame.empty:

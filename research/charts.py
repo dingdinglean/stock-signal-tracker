@@ -33,28 +33,79 @@ def _ema(series: pd.Series, span: int) -> pd.Series:
     return averaged
 
 
+def chart_dates(row: dict) -> dict[str, object]:
+    """DXDX date comes only from ``signal_date``. An empty field stays unknown.
+
+    ``push_date`` is never copied into the DXDX mark. When both dates exist and
+    fall on the same session, that is one line, not two events pretending to
+    be different days.
+    """
+    raw_signal = str(row.get("signal_date") or "").strip()
+    dxdx = parse_day(raw_signal) if raw_signal else None
+    push = parse_day(row.get("push_date"))
+    return {
+        "dxdx": dxdx,
+        "push": push,
+        "signal_time": str(row.get("signal_time") or "").strip(),
+        "same_day": bool(dxdx and push and dxdx == push),
+    }
+
+
+def chart_window_start(days: list, anchor, pattern: dict):
+    """First plotted session: at least 60 bars before ``anchor``, and any earlier low."""
+    before = [day for day in days if day < anchor]
+    if len(before) < STUDY_PARAMS.chart_lookback:
+        return None
+    start = before[-STUDY_PARAMS.chart_lookback]
+    for key in ("low1_date", "low2_date"):
+        marked = parse_day(pattern.get(key))
+        if marked is not None and marked in days and marked < start:
+            start = marked
+    return start
+
+
+def chart_markers(dates: dict, pattern: dict) -> list[tuple[object, str]]:
+    """Signal-time marks and a separately labeled posterior breakout."""
+    marks: list[tuple[object, str]] = []
+    signal = dates.get("dxdx")
+    push = dates.get("push")
+    if signal is None and push is not None:
+        marks.append((push, "推送"))
+    elif dates.get("same_day"):
+        marks.append((signal, "DXDX与推送同日"))
+    else:
+        if signal is not None:
+            marks.append((signal, "DXDX"))
+        if push is not None:
+            marks.append((push, "推送"))
+    for key, label in (("low1_date", "低点1"), ("low2_date", "低点2"), ("breakout_date", "信号时突破")):
+        marked = parse_day(pattern.get(key))
+        if marked is not None:
+            marks.append((marked, label))
+    posterior = parse_day(pattern.get("posterior_breakout_date"))
+    if posterior is not None:
+        marks.append((posterior, "后验突破"))
+    return marks
+
+
 def render_chart(daily: pd.DataFrame, row: dict, pattern: dict) -> tuple[bytes | None, str]:
     """Draw one formal push. Pattern levels come from the as-of result already computed."""
     if daily is None or daily.empty:
         return None, "无日线缓存，不绘制"
-    signal = parse_day(row.get("signal_date"))
-    push = parse_day(row.get("push_date"))
+    dates = chart_dates(row)
+    signal = dates["dxdx"]
+    push = dates["push"]
     anchor = signal or push
     if anchor is None:
-        return None, "没有信号日或推送日"
-    days = [day for day in daily.index if True]
-    if anchor not in days:
-        earlier = [day for day in days if day <= anchor]
-        if not earlier:
-            return None, f"{anchor.isoformat()} 之前没有日线，不绘制"
-    start_pool = [day for day in days if day <= anchor]
-    if len(start_pool) < STUDY_PARAMS.chart_lookback:
-        window_start = start_pool[0] if start_pool else days[0]
-        short = True
-    else:
-        window_start = start_pool[-STUDY_PARAMS.chart_lookback]
-        short = False
-    view = daily.loc[(daily.index >= window_start)].copy()
+        return None, "没有独立的 DXDX 日期，也没有推送日，不绘制"
+    days = list(daily.index)
+    before_anchor = [day for day in days if day < anchor]
+    if len(before_anchor) < STUDY_PARAMS.chart_lookback:
+        return None, f"信号前交易日 {len(before_anchor)} 根，不足 60，不绘制案例图"
+    if len(before_anchor) < 89:
+        return None, f"信号之前只有 {len(before_anchor)} 根日 K，EMA89 在信号处尚未完成 warmup，不绘制"
+    window_start = chart_window_start(days, anchor, pattern)
+    view = daily.loc[daily.index >= window_start].copy()
     if view.empty:
         return None, "窗口内没有K线"
     plt = _style()
@@ -83,13 +134,9 @@ def render_chart(daily: pd.DataFrame, row: dict, pattern: dict) -> tuple[bytes |
             price_ax.axvline(index_of[day], color=color, linestyle="--", linewidth=0.9)
             price_ax.text(index_of[day], price_ax.get_ylim()[1], text, color=color, fontsize=8, rotation=90, va="top")
 
-    _mark(signal, "DXDX", "#6c3483")
-    _mark(push, "推送", "#1a5276")
-    for key, label in (("low1_date", "低点1"), ("low2_date", "低点2"), ("breakout_date", "突破")):
-        marked = parse_day(pattern.get(key))
-        if marked is None:
-            continue
-        _mark(marked, label, "#b03a2e")
+    for marked, label in chart_markers(dates, pattern):
+        color = "#0e6655" if label == "后验突破" else "#6c3483"
+        _mark(marked, label, color)
     level = pattern.get("neckline") or pattern.get("platform_high")
     if level:
         try:
@@ -101,12 +148,11 @@ def render_chart(daily: pd.DataFrame, row: dict, pattern: dict) -> tuple[bytes |
         f"{row.get('symbol')} {cohort} 形态={pattern.get('status')} 突破={pattern.get('breakout_state')} "
         f"板块={row.get('sector_status')} 排名={row.get('asof_sector_rank') or '无'}"
     )
+    dxdx_text = "未知" if signal is None else f"{signal.isoformat()} {dates['signal_time']}".strip()
     subtitle = (
-        f"推送 {row.get('push_date')} 冻结价 {row.get('push_price')} "
+        f"DXDX {dxdx_text}｜推送 {push.isoformat() if push else '未知'}｜冻结价 {row.get('push_price')} "
         f"后10日 {row.get('return_10d') or '未成熟'} 后20日 {row.get('return_20d') or '未成熟'}"
     )
-    if short:
-        subtitle += " 前窗不足60个交易日"
     price_ax.set_title(title + "\n" + subtitle, fontsize=10)
     price_ax.legend(loc="upper left", fontsize=8)
     price_ax.set_ylabel("价格")

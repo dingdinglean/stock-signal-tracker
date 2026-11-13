@@ -217,18 +217,78 @@ def benchmark_return(index_bars: pd.DataFrame | None, entry_day: date | None, ex
     return f"{end / start - 1.0:.6f}", "^GSPC open-to-close price return; not SPY; not total return; intraday barrier exits use the session close"
 
 
-def ledger_index_return(index_bars: pd.DataFrame | None, push_day: date, sessions: int, calendar) -> str:
-    """Close-to-close index move over the same N sessions the ledger uses after push_date."""
+def ledger_benchmark(index_bars: pd.DataFrame | None, push_day: date, sessions: int, calendar) -> dict[str, str]:
+    """^GSPC close-to-close percent over the ledger's T+N window.
+
+    The frozen stock return is already a percent: push price to the close of the
+    Nth NYSE session strictly after ``push_date``. The index uses that same end
+    session and the ^GSPC close on ``push_date``. The result is percent, so it
+    can be subtracted from ``return_Nd``. It is not a decimal, not SPY, and not
+    a dividend total return. The stock anchor remains the frozen print.
+    """
+    blank = {"percent": "", "start": "", "end": "", "unit": "percent"}
     if index_bars is None or index_bars.empty:
-        return ""
+        return blank
     end = session_offset(calendar, push_day, sessions)
     if end is None or push_day not in index_bars.index or end not in index_bars.index:
-        return ""
+        return blank
     start = _num(index_bars.loc[push_day]["close"])
     finish = _num(index_bars.loc[end]["close"])
     if start is None or finish is None:
+        return blank
+    return {
+        "percent": f"{(finish / start - 1.0) * 100.0:.6f}",
+        "start": push_day.isoformat(),
+        "end": end.isoformat(),
+        "unit": "percent",
+    }
+
+
+def ledger_index_return(index_bars: pd.DataFrame | None, push_day: date, sessions: int, calendar) -> str:
+    """Percent index move. See ``ledger_benchmark`` for the window."""
+    return ledger_benchmark(index_bars, push_day, sessions, calendar)["percent"]
+
+
+def path_highwater_percent(bars: pd.DataFrame | None, start_day: date, sessions: int, calendar) -> str:
+    """Percent peak-to-trough drawdown over the N sessions after ``start_day``.
+
+    The peak starts at that session's close and then follows highs. This is not
+    MAE, which is the lowest low versus the starting price and ignores the path
+    of the high-water mark.
+    """
+    if bars is None or bars.empty or sessions < 1:
         return ""
-    return f"{finish / start - 1.0:.6f}"
+    end = session_offset(calendar, start_day, sessions)
+    if end is None or start_day not in bars.index:
+        return ""
+    start_price = _num(bars.loc[start_day]["close"])
+    if start_price is None:
+        return ""
+    window = bars.loc[[day for day in bars.index if start_day < day <= end]]
+    peak = start_price
+    worst = 0.0
+    for _, row in window.iterrows():
+        high = _num(row.get("high"))
+        low = _num(row.get("low"))
+        if high:
+            peak = max(peak, high)
+        if low and peak > 0:
+            worst = min(worst, low / peak - 1.0)
+    return f"{worst * 100.0:.6f}"
+
+
+def forward_close_return_percent(bars: pd.DataFrame | None, start_day: date, sessions: int, calendar) -> str:
+    """Percent close-to-close move starting at ``start_day``, not at the push."""
+    if bars is None or bars.empty:
+        return ""
+    end = session_offset(calendar, start_day, sessions)
+    if end is None or start_day not in bars.index or end not in bars.index:
+        return ""
+    start = _num(bars.loc[start_day]["close"])
+    finish = _num(bars.loc[end]["close"])
+    if start is None or finish is None:
+        return ""
+    return f"{(finish / start - 1.0) * 100.0:.6f}"
 
 
 def scale_warning(bars: pd.DataFrame, push_day: date, push_price: float) -> tuple[str, str]:

@@ -8,9 +8,17 @@ on:
         required: false
         type: boolean
         default: true
+  schedule:
+    # After the weekday 23:30 UTC tracker. Tuesday-Saturday 01:30 UTC covers Monday-Friday sessions.
+    - cron: "30 1 * * 2-6"
 
 permissions:
   contents: read
+
+# Queue runs so an older job cannot finish last and become the newest cache.
+concurrency:
+  group: research-price-cache
+  cancel-in-progress: false
 
 jobs:
   research:
@@ -32,22 +40,50 @@ jobs:
       - name: Install chart font
         run: sudo apt-get update && sudo apt-get install -y fonts-wqy-microhei
 
+      - name: Restore research price cache
+        id: cache_restore
+        uses: actions/cache/restore@v4
+        with:
+          path: data/research_cache
+          key: research-price-v1-${{ github.run_id }}
+          restore-keys: |
+            research-price-v1-
+
       - name: Run verifier and research tests
         run: python -m pytest -q
 
       - name: Research dry-run
-        if: ${{ inputs.research_dry_run != false }}
+        if: ${{ github.event_name != 'schedule' && inputs.research_dry_run != false }}
         run: python -m research.run --dry-run
 
-      - name: Research full run
-        if: ${{ inputs.research_dry_run == false }}
+      - name: Research scheduled or full run
+        if: ${{ github.event_name == 'schedule' || inputs.research_dry_run == false }}
         run: python -m research.run --full
+
+      - name: Decide whether the price cache is worth saving
+        id: cache_gate
+        if: always()
+        run: |
+          if find data/research_cache -type f -name '*.csv' | grep -q .; then
+            echo "save=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "save=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Research cache has no price files; not saving an empty cache over later restores."
+          fi
+
+      - name: Save research price cache
+        if: always() && steps.cache_gate.outputs.save == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: data/research_cache
+          key: research-price-v1-${{ github.run_id }}
 
       - name: Upload research outputs
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: signal-research-report
+          name: signal-research-report-${{ github.run_id }}
+          retention-days: 30
           path: |
             output/research/report.html
             output/research/signals.csv

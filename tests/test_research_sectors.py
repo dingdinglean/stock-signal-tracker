@@ -29,16 +29,19 @@ def test_later_snapshot_does_not_fill_the_signal_day_and_missing_is_unknown():
     late_clock = datetime(2026, 9, 8, 21, 0, tzinfo=timezone.utc)
     withheld = classify_sector({"云软件"}, snapshots, late_clock.date(), late_clock, calendar)
     assert withheld["asof_sector_status"] == "unknown"
-    assert withheld["asof_sector_reason"] == "no_snapshot_published_by_push"
+    assert withheld["asof_sector_reason"] == "no_snapshot_known_by_proxy_cutoff"
     absent = classify_sector({"工业"}, snapshots, asof.date(), asof, calendar)
-    assert absent["asof_sector_status"] == "not_strong"
+    assert absent["asof_sector_status"] == "unknown"
+    assert absent["asof_sector_reason"] == "no_historical_taxonomy_map_not_strong_withheld"
     unlabeled = classify_sector(set(), snapshots, asof.date(), asof, calendar)
     assert unlabeled["asof_sector_status"] == "unknown"
     assert unlabeled["posterior_5d_entered_top3"] == "unknown"
     # A top-3 print that exists only after the push stays in the posterior fields.
     turned = classify_sector({"半导体"}, snapshots, asof.date(), asof, calendar)
-    assert turned["asof_sector_status"] == "not_strong"
-    assert turned["posterior_10d_entered_top3"] == "yes"
+    assert turned["asof_sector_status"] == "unknown"
+    assert turned["posterior_first_top3_date"] == "2026-09-09"
+    assert turned["posterior_lead_since"] == "2026-09-09"
+    assert turned["posterior_first_rank1_date"] == "2026-09-09"
     assert turned["asof_sector_rank"] == ""
 
 

@@ -7,6 +7,7 @@ import json
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
+from research.asof import decision_clocks
 from research.charts import render_chart
 from research.cohort import assign_cohort
 from research.hypothesis import (
@@ -18,11 +19,14 @@ from research.hypothesis import (
 )
 from research.market import following_sessions, parse_day, parse_time, xnys
 from research.metrics import assign_splits, build_groups, number, six_answers
-from research.patterns import completed_daily, detect_pattern, posterior_breakout, weekly_bars
-from research.prices import cache_path, fetch_symbol, merge_cache, read_cache
+from research.patterns import complete_weeks_only, completed_daily, detect_pattern, posterior_breakout, weekly_bars
+from research.prices import cache_path, fetch_symbol, incremental_start, merge_cache, read_cache
 from research.report import render_html, write_csv
 from research.sectors import candidate_labels, classify_sector
-from research.simulate import benchmark_return, ledger_index_return, scale_warning, simulate_trade
+from research.simulate import (
+    benchmark_return, forward_close_return_percent, ledger_benchmark, path_highwater_percent,
+    scale_warning, simulate_trade,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTECTED = (
@@ -52,6 +56,22 @@ LEDGER_FIELDS = (
     "effectiveness", "return_1d", "return_3d", "return_5d", "return_10d", "return_20d",
     "mfe_10d", "mae_10d", "mfe_20d", "mae_20d", "latest_return", "sessions_observed",
 )
+
+
+def _run_meta(run: dict, repo: str, workflow: str) -> dict[str, str]:
+    return {
+        "created_at": str(run.get("created_at") or ""),
+        "run_started_at": str(run.get("run_started_at") or ""),
+        "updated_at": str(run.get("updated_at") or ""),
+        "status": str(run.get("status") or ""),
+        "job_completed_at": str(run.get("job_completed_at") or ""),
+        "job_completed_source": str(run.get("job_completed_source") or ""),
+        "repo": repo,
+        "workflow": workflow,
+        "run_id": str(run.get("id") or ""),
+        "observed_at": datetime.now(timezone.utc).isoformat(),
+        "time_note": "created_at and run_started_at are run-start metadata, not the email time. updated_at is not an as-of clock.",
+    }
 
 
 def _sha(path: Path) -> str:
@@ -98,29 +118,34 @@ def load_run_index(cache_file: Path, *, fetch: bool, needed: set[str] | None = N
             errors.append(f"{repo} {workflow}: {exc.__class__.__name__}: {exc}")
             continue
         for run in runs:
-            found[str(run.get("id"))] = {
-                "created_at": run.get("created_at") or "",
-                "repo": repo,
-                "workflow": workflow,
-                "run_id": str(run.get("id") or ""),
-                "observed_at": datetime.now(timezone.utc).isoformat(),
-            }
+            found[str(run.get("id"))] = _run_meta(run, repo, workflow)
     for run_id in sorted(needed or ()):
-        if found.get(run_id, {}).get("created_at"):
+        current = found.get(run_id, {})
+        if not current.get("created_at"):
+            try:
+                payload = client._get(f"https://api.github.com/repos/dingdinglean/gupiao/actions/runs/{run_id}").json()
+            except GitHubArtifactError as exc:
+                errors.append(f"run {run_id}: {exc}")
+                payload = {}
+            if payload.get("created_at") or payload.get("run_started_at"):
+                current = _run_meta(payload, "dingdinglean/gupiao", str(payload.get("name") or ""))
+                found[run_id] = current
+        if current.get("job_completed_at"):
             continue
         try:
-            payload = client._get(f"https://api.github.com/repos/dingdinglean/gupiao/actions/runs/{run_id}").json()
+            jobs = client._get(f"https://api.github.com/repos/dingdinglean/gupiao/actions/runs/{run_id}/jobs?per_page=100").json()
         except GitHubArtifactError as exc:
-            errors.append(f"run {run_id}: {exc}")
-            continue
-        if payload.get("created_at"):
-            found[run_id] = {
-                "created_at": payload.get("created_at") or "",
-                "repo": "dingdinglean/gupiao",
-                "workflow": payload.get("name") or "",
-                "run_id": run_id,
-                "observed_at": datetime.now(timezone.utc).isoformat(),
-            }
+            errors.append(f"jobs {run_id}: {exc}")
+            jobs = {}
+        completed = [str(job.get("completed_at") or "") for job in jobs.get("jobs") or [] if job.get("completed_at")]
+        if completed:
+            current["job_completed_at"] = max(completed)
+            current["job_completed_source"] = "actions_job_completed_at"
+        elif current.get("status") == "completed" and current.get("updated_at"):
+            current["job_completed_at"] = current["updated_at"]
+            current["job_completed_source"] = "run_updated_at_because_status_completed"
+        if current:
+            found[run_id] = current
     if found != saved:
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         temporary = cache_file.with_suffix(".json.tmp")
@@ -138,7 +163,8 @@ def _prices_for(root: Path, symbols: list[str], *, fetch: bool, today: date) -> 
         path = cache_path(cache_root, symbol)
         error = ""
         if fetch:
-            fresh, error = fetch_symbol(symbol, STUDY_PARAMS.price_start, end)
+            cached = read_cache(path)
+            fresh, error = fetch_symbol(symbol, incremental_start(cached, STUDY_PARAMS.price_start), end)
             merge_cache(path, fresh)
         frame = read_cache(path)
         frames[symbol] = frame
@@ -182,21 +208,39 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
         cohort = assign_cohort(event)
         row = {field: event.get(field, "") for field in LEDGER_FIELDS}
         row["cohort"] = cohort
-        row["in_loss_hide_study"] = "no"
+        row["loss_hide_applied"] = "no"
         info = run_index.get(str(event.get("source_run_id") or ""))
-        asof = parse_time((info or {}).get("created_at"))
+        clocks = decision_clocks(info)
+        asof = clocks["bar_cutoff"]
+        entry_asof = clocks["entry_cutoff"]
         row["asof_time"] = asof.isoformat() if asof else ""
-        row["asof_time_source"] = "gupiao workflow run created_at" if asof else "missing"
+        row["asof_time_quality"] = clocks["bar_quality"]
+        row["entry_time"] = entry_asof.isoformat() if entry_asof else ""
+        row["entry_time_quality"] = clocks["entry_quality"]
+        row["asof_time_evidence"] = clocks["evidence"]
+        row["asof_run_created_at"] = str((info or {}).get("created_at") or "")
+        row["asof_run_started_at"] = str((info or {}).get("run_started_at") or "")
+        row["asof_run_updated_at"] = str((info or {}).get("updated_at") or "")
+        row["job_completed_at"] = str((info or {}).get("job_completed_at") or "")
+        row["asof_time_source"] = clocks["bar_quality"]
         symbol = row["symbol"].upper()
         frame = frames.get(symbol)
         push = parse_day(row.get("push_date"))
         if index_bars is not None and push is not None:
-            row["benchmark_10d"] = ledger_index_return(index_bars, push, 10, calendar)
-            row["benchmark_20d"] = ledger_index_return(index_bars, push, 20, calendar)
-            row["benchmark_label"] = "^GSPC close-to-close price return; not SPY; not dividend total return"
+            bench10 = ledger_benchmark(index_bars, push, 10, calendar)
+            bench20 = ledger_benchmark(index_bars, push, 20, calendar)
+            row["benchmark_10d"] = bench10["percent"]
+            row["benchmark_20d"] = bench20["percent"]
+            row["benchmark_20d_start"] = bench20["start"]
+            row["benchmark_20d_end"] = bench20["end"]
+            row["benchmark_unit"] = "percent"
+            row["benchmark_label"] = "冻结收益与 ^GSPC 都是百分数；窗口是 push_date 收盘到其后第 N 个交易日收盘；不是 SPY，不是分红总收益"
         else:
             row["benchmark_10d"] = ""
             row["benchmark_20d"] = ""
+            row["benchmark_20d_start"] = ""
+            row["benchmark_20d_end"] = ""
+            row["benchmark_unit"] = "percent"
             row["benchmark_label"] = "benchmark_missing"
         daily_pattern = None
         weekly_pattern = None
@@ -213,48 +257,74 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
             full_daily = completed_daily(frame, now, calendar, STUDY_PARAMS.close_buffer_minutes)
             asof_weekly = weekly_bars(asof_daily, calendar)
             full_weekly = weekly_bars(full_daily, calendar)
+            official_weekly = complete_weeks_only(asof_weekly)
             daily_pattern = detect_pattern(asof_daily, DAILY_PARAMS, timeframe="daily")
-            weekly_pattern = detect_pattern(asof_weekly, WEEKLY_PARAMS, timeframe="weekly")
+            weekly_pattern = detect_pattern(official_weekly, WEEKLY_PARAMS, timeframe="weekly")
+            partial_weekly = detect_pattern(asof_weekly, WEEKLY_PARAMS, timeframe="weekly")
             row.update(_pattern_fields("daily_", daily_pattern, posterior_breakout(full_daily, daily_pattern)))
-            row.update(_pattern_fields("weekly_", weekly_pattern, posterior_breakout(full_weekly, weekly_pattern)))
+            row.update(_pattern_fields("weekly_", weekly_pattern, posterior_breakout(complete_weeks_only(full_weekly), weekly_pattern)))
+            row["weekly_partial_pattern_status"] = partial_weekly.status
+            row["weekly_partial_is_auxiliary"] = "yes"
+            row["weekly_official_pattern_excludes_partial"] = "yes"
+            if len(asof_weekly):
+                row["weekly_last_bar_date"] = str(asof_weekly.index[-1])
+                row["weekly_last_bar_complete"] = "yes" if bool(asof_weekly.iloc[-1]["week_complete"]) else "no"
+            else:
+                row["weekly_last_bar_date"] = ""
+                row["weekly_last_bar_complete"] = ""
             chart_inputs.append({"event": row, "frame": full_daily, "pattern": weekly_pattern if cohort == "weekly" else daily_pattern})
         status, breakout = _study_pattern(cohort, daily_pattern, weekly_pattern)
         row["pattern_status"] = status
         row["breakout_state"] = breakout
-        sector = classify_sector(candidate_labels(event), snapshots, push, asof, calendar, SECTOR_PARAMS)
+        sector = classify_sector(candidate_labels(event), snapshots, push, asof, calendar, SECTOR_PARAMS, now)
         row.update(sector)
         row["sector_status"] = {"strong": "strong", "not_strong": "not_strong"}.get(sector["asof_sector_status"], "unknown")
         row["posterior_sector_entered"] = sector["posterior_10d_entered_top3"]
+        row["highwater_dd_10d"] = path_highwater_percent(frame, push, 10, calendar) if push is not None else ""
+        row["highwater_dd_20d"] = path_highwater_percent(frame, push, 20, calendar) if push is not None else ""
+        event_day = parse_day(row.get("posterior_first_top3_date"))
+        if event_day is None or frame is None:
+            row["return_after_top3_10d"] = ""
+            row["return_after_top3_20d"] = ""
+            row["highwater_dd_after_top3_20d"] = ""
+        else:
+            row["return_after_top3_10d"] = forward_close_return_percent(frame, event_day, 10, calendar)
+            row["return_after_top3_20d"] = forward_close_return_percent(frame, event_day, 20, calendar)
+            row["highwater_dd_after_top3_20d"] = path_highwater_percent(frame, event_day, 20, calendar)
         research_rows.append(row)
-        if cohort not in {"daily", "weekly"} or asof is None:
+        if cohort not in {"daily", "weekly"} or entry_asof is None:
             continue
         warning, detail = scale_warning(frame, push, number(row.get("push_price")) or 0.0) if push else ("yes", "no_push_date")
-        for strategy, mode, hold, cost_name, fee, slip in (
-            ("barrier_5", "barrier", None, "zero", 0.0, 0.0),
-            ("barrier_5", "barrier", None, "hypothesis", STUDY_PARAMS.fee_bps, STUDY_PARAMS.slippage_bps),
-            ("hold_10", "hold", 10, "zero", 0.0, 0.0),
-            ("hold_10", "hold", 10, "hypothesis", STUDY_PARAMS.fee_bps, STUDY_PARAMS.slippage_bps),
-            ("hold_20", "hold", 20, "zero", 0.0, 0.0),
-            ("hold_20", "hold", 20, "hypothesis", STUDY_PARAMS.fee_bps, STUDY_PARAMS.slippage_bps),
-        ):
-            trade = simulate_trade(
-                frame, asof, calendar, mode=mode, hold_sessions=hold,
-                take_profit=STUDY_PARAMS.take_profit, stop_loss=STUDY_PARAMS.stop_loss,
-                fee_bps=fee, slippage_bps=slip,
-            )
-            bench, bench_note = ("", "")
-            exit_day = parse_day(trade.get("exit_date"))
-            entry_day = parse_day(trade.get("entry_date"))
-            if trade.get("status") == "closed":
-                bench, bench_note = benchmark_return(index_bars, entry_day, exit_day)
-            trade.update({
-                "signal_id": row["signal_id"], "symbol": symbol, "cohort": cohort, "strategy": strategy,
-                "cost_mode": cost_name, "scale_warning": warning, "scale_detail": detail,
-                "included_in_mean": "yes" if trade.get("status") == "closed" and warning == "no" else "no",
-                "benchmark_return": bench, "benchmark_note": bench_note,
-                "sample_split": "", "split_cut": "",
-            })
-            sim_rows.append(trade)
+        cost_grid = (
+            ("zero", 0.0, 0.0),
+            ("fee_only", STUDY_PARAMS.fee_bps, 0.0),
+            ("slippage_only", 0.0, STUDY_PARAMS.slippage_bps),
+            ("fee_and_slippage", STUDY_PARAMS.fee_bps, STUDY_PARAMS.slippage_bps),
+        )
+        plans = [("barrier_5", "barrier", None), ("hold_10", "hold", 10), ("hold_20", "hold", 20)]
+        for strategy, mode, hold in plans:
+            for cost_name, fee, slip in cost_grid:
+                trade = simulate_trade(
+                    frame, entry_asof, calendar, mode=mode, hold_sessions=hold,
+                    take_profit=STUDY_PARAMS.take_profit, stop_loss=STUDY_PARAMS.stop_loss,
+                    fee_bps=fee, slippage_bps=slip,
+                )
+                bench, bench_note = ("", "")
+                exit_day = parse_day(trade.get("exit_date"))
+                entry_day = parse_day(trade.get("entry_date"))
+                if trade.get("status") == "closed":
+                    bench, bench_note = benchmark_return(index_bars, entry_day, exit_day)
+                trade.update({
+                    "signal_id": row["signal_id"], "symbol": symbol, "cohort": cohort,
+                    "sector_status": row["sector_status"], "pattern_status": row["pattern_status"],
+                    "strategy": strategy,
+                    "cost_mode": cost_name, "fee_bps": fee, "slippage_bps": slip,
+                    "scale_warning": warning, "scale_detail": detail,
+                    "included_in_mean": "yes" if trade.get("status") == "closed" and warning == "no" else "no",
+                    "benchmark_return": bench, "benchmark_note": bench_note,
+                    "sample_split": "", "split_cut": "",
+                })
+                sim_rows.append(trade)
     assign_splits(research_rows, calendar, STUDY_PARAMS)
     split_of = {row["signal_id"]: (row.get("sample_split", ""), row.get("split_cut", "")) for row in research_rows}
     for trade in sim_rows:
@@ -291,9 +361,11 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
         "run_time_errors": " | ".join(run_errors),
         "gupiao_commit": pins.get("gupiao", {}).get("commit", ""),
         "screener_commit": pins.get("strong_pullback_screener", {}).get("commit", ""),
-        "sector_history": "data/sector_snapshots.csv market_date + run_created_at；只发布 Top3，没有更后的名次就不编造",
+        "sector_history": "data/sector_snapshots.csv 的 market_date 是市场日。run_created_at 只说明该雷达运行何时创建，不作为价格时钟，也不把不完整 Top3 或不同词汇的行业名记成非强势。",
+        "asof_clock": "K线用 created_at/run_started_at 的较早者，这不是发布时间。成交用 job completed_at 保守上界；没有完成时间则不模拟。收盘加 20 分钟。未完成周不进入正式周形态。",
         "parameters": CONCLUSION_RULE,
-        "costs": f"假设单边费用 {STUDY_PARAMS.fee_bps} bps、滑点 {STUDY_PARAMS.slippage_bps} bps；另有零成本对照。没有用全样本搜索这组数字。",
+        "costs": f"费用 {STUDY_PARAMS.fee_bps} bps 与滑点 {STUDY_PARAMS.slippage_bps} bps 分开计算，并给出两者都加、以及零成本。没有用全样本搜索这组数字。",
+        "artifact_access": "本仓库没有 Pages 站点。完整 HTML/CSV 由 Research dry-run 工作流上传为 Actions artifact，名称 signal-research-report-<run_id>。",
         "adjustment": "模拟成交用 Yahoo auto_adjust=False 的开高低收（拆股已回溯到整段，分红不在 OHLC 里）。冻结 push_price 不参与成交，也不被改写。",
         "network": "full" if full else "dry-run",
     }
@@ -332,8 +404,12 @@ def _charts(chart_inputs: list[dict], rows: list[dict], price_errors: dict[str, 
             reason = price_errors.get(row["symbol"].upper(), "不在日/周研究样本或缺少 as-of 行情")
             chosen.append({"title": title, "note": note + " " + reason, "png": None})
             return
-        png, error = render_chart(item["frame"], row, item["pattern"].as_dict())
-        chosen.append({"title": title, "note": note + (" " + error if error else " 图中低点和颈线来自信号当时的判断；之后的K线只作展示。"), "png": png})
+        pattern_dict = item["pattern"].as_dict()
+        prefix = "weekly_" if row.get("cohort") == "weekly" else "daily_"
+        pattern_dict["posterior_breakout_date"] = row.get(f"{prefix}posterior_breakout_date", "")
+        png, error = render_chart(item["frame"], row, pattern_dict)
+        posterior = pattern_dict.get("posterior_breakout_date") or "无"
+        chosen.append({"title": title, "note": note + (" " + error if error else f" 图中低点来自信号当时的判断。后验突破日期：{posterior}，与信号时突破分开标注。"), "png": png})
 
     for symbol in PRIORITY:
         matches = [row for row in rows if row["symbol"] == symbol and row["cohort"] in {"daily", "weekly"}]
