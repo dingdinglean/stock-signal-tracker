@@ -47,10 +47,11 @@ def test_baseline_hashes_and_every_formal_push_keeps_its_cohort():
             hidden_in_study += 1
         assert row["push_price"]
     assert hidden_in_study > 0
-    assert sum(assign_cohort(row) == "h4_excluded" for row in rows) == 17
-    assert sum(assign_cohort(row) == "monthly_excluded" for row in rows) == 4
-    assert sum(assign_cohort(row) == "daily" for row in rows) == 9
-    assert sum(assign_cohort(row) == "weekly" for row in rows) == 41
+    baseline = [by_id[signal_id] for signal_id in frozen["rows"]]
+    expected = {"h4_excluded": 17, "monthly_excluded": 4, "daily": 9, "weekly": 41}
+    for cohort, count in expected.items():
+        assert sum(assign_cohort(row) == cohort for row in baseline) == count
+        assert sum(assign_cohort(row) == cohort for row in rows) >= count
 
 
 def test_research_runner_and_workflows_do_not_send_mail_or_retune_dxdx():
