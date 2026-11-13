@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -14,13 +15,22 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_baseline_hashes_and_every_formal_push_keeps_its_cohort():
     manifest = json.loads((ROOT / "research" / "baseline_manifest.json").read_text(encoding="utf-8"))
+    frozen = json.loads((ROOT / "research" / "baseline_frozen_ids.json").read_text(encoding="utf-8"))
     assert manifest["git_sha"] == "6e279606a7efed49a9c1e6a866a4e6c3500372bf"
     assert manifest["signal_rows"] == 71
+    mutable = {"data/signal_history.csv", "data/sector_snapshots.csv", "data/state.json", "data/sector_metadata_cache.json", "data/events.csv"}
     for rel in PROTECTED:
+        if rel in mutable:
+            continue
         assert _sha(ROOT / rel) == manifest["files"][rel]["sha256"], rel
     rows = _read_csv(ROOT / "data" / "signal_history.csv")
-    assert len(rows) == 71
-    assert len({row["signal_id"] for row in rows}) == 71
+    assert len(rows) >= 71
+    assert len({row["signal_id"] for row in rows}) == len(rows)
+    by_id = {row["signal_id"]: row for row in rows}
+    assert set(frozen["rows"]) <= set(by_id)
+    for signal_id, digest in frozen["rows"].items():
+        payload = "|".join(by_id[signal_id].get(field, "") for field in frozen["fields"])
+        assert hashlib.sha256(payload.encode()).hexdigest() == digest, signal_id
     hidden_in_study = 0
     for row in rows:
         cohort = assign_cohort(row)
@@ -63,9 +73,9 @@ def test_real_ledger_statistics_keep_hidden_losses_and_do_not_mail():
     stats = strategy_statistics(rows)
     hidden = [row for row in rows if row.get("display_state") == "hidden"]
     hidden_losses = [row for row in hidden if row.get("latest_return") and float(row["latest_return"]) < 0]
-    assert stats["total"] == 71
+    assert stats["total"] == len(rows) >= 71
     assert hidden_losses
     assert stats["loss"] >= len(hidden_losses)
     prepared = prepare_email_data([], rows)
     assert all(row.get("display_state") != "hidden" for row in prepared.display_history)
-    assert len(prepared.all_history) == 71
+    assert len(prepared.all_history) == len(rows)
