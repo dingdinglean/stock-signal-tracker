@@ -98,6 +98,33 @@ def test_incomplete_week_is_not_an_official_weekly_bar():
     assert float(official.iloc[-1]["close"]) == 1
 
 
+def test_overlapping_flags_are_not_reported_as_the_exclusive_label():
+    from research.metrics import six_answers
+    winners = [{
+        "cohort": "daily", "symbol": "CB", "push_date": "2026-09-18", "return_20d": "1",
+        "pattern_status": "double_bottom", "daily_double_bottom": "yes", "daily_platform": "yes",
+        "daily_sharp_stabilize": "no", "sector_status": "unknown", "breakout_state": "no",
+    }]
+    text = six_answers([], winners)[0]["answer"]
+    assert "主分类（互斥，双底优先）双底 1/1" in text
+    assert "平台 0/1" in text
+    assert "daily_platform 1/1" in text
+    assert "可重叠检测可以同时为 yes" in text
+
+
+def test_weekly_low_marker_uses_the_session_that_printed_the_low():
+    from research.patterns import weekly_bars
+    calendar = xnys(2026, 2026)
+    days = [date(2026, 6, 8), date(2026, 6, 9), date(2026, 6, 10), date(2026, 6, 11), date(2026, 6, 12)]
+    lows = [110.0, 106.54, 109.0, 108.0, 108.80]
+    frame = pd.DataFrame({"open": lows, "high": [v + 1 for v in lows], "low": lows, "close": lows, "volume": 1}, index=days)
+    weekly = weekly_bars(frame, calendar)
+    assert weekly.index[0] == date(2026, 6, 12)
+    assert float(weekly.iloc[0]["low"]) == 106.54
+    assert weekly.iloc[0]["low_date"] == "2026-06-09"
+    assert weekly.iloc[0]["low_date"] != "2026-06-12"
+
+
 def test_unidentified_pattern_does_not_draw_a_double_bottom():
     labels = [label for _day, label in chart_markers(
         {"dxdx": date(2026, 10, 1), "push": date(2026, 10, 2), "same_day": False},

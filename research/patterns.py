@@ -18,12 +18,15 @@ class PatternResult:
     platform: str
     sharp_stabilize: str
     low1_date: str = ""
+    low1_bar_date: str = ""
     low1_price: str = ""
     low2_date: str = ""
+    low2_bar_date: str = ""
     low2_price: str = ""
     low_gap_bars: str = ""
     low_price_diff: str = ""
     neckline: str = ""
+    neckline_date: str = ""
     mid_rebound: str = ""
     platform_high: str = ""
     platform_low: str = ""
@@ -51,6 +54,15 @@ def _unknown(reason: str, bars: int = 0, last: str = "") -> PatternResult:
 
 def _date_text(value) -> str:
     return pd.Timestamp(value).date().isoformat()
+
+
+def _point_date(bars: pd.DataFrame, index: int, column: str) -> str:
+    """Actual session of a weekly extreme. The bar index is only the week label."""
+    if column in bars.columns:
+        value = bars.iloc[index].get(column)
+        if value is not None and str(value).strip() and str(value).strip().lower() != "nan":
+            return _date_text(value)
+    return _date_text(bars.index[index])
 
 
 def _complete_flags(bars: pd.DataFrame) -> pd.Series:
@@ -108,6 +120,7 @@ def _double_bottom(bars: pd.DataFrame, params: PatternParams) -> dict | None:
             if middle.empty:
                 continue
             neckline = float(middle["high"].max())
+            neckline_at = int(middle["high"].values.argmax()) + first + 1
             higher = max(first_price, second_price)
             rebound = neckline / higher - 1.0
             if rebound < params.min_mid_rebound:
@@ -121,6 +134,7 @@ def _double_bottom(bars: pd.DataFrame, params: PatternParams) -> dict | None:
                 "first_price": first_price,
                 "second_price": second_price,
                 "gap": gap,
+                "neckline_at": neckline_at,
             }
             # The latest confirmed second low is the pattern visible at the as-of bar.
             if best is None or second > best["second"] or (second == best["second"] and diff < best["diff"]):
@@ -137,7 +151,7 @@ def _close_break(bars: pd.DataFrame, start: int, level: float) -> tuple[bool, st
         return False, ""
     for index in range(start, len(bars)):
         if float(bars.iloc[index]["close"]) > level:
-            return True, _date_text(bars.index[index])
+            return True, _point_date(bars, index, "close_date")
     return False, ""
 
 
@@ -217,13 +231,16 @@ def detect_pattern(bars: pd.DataFrame, params: PatternParams | None = None, *, t
     if double:
         result.status = "double_bottom"
         result.reason = "two_confirmed_lows"
-        result.low1_date = _date_text(bars.index[double["first"]])
+        result.low1_bar_date = _date_text(bars.index[double["first"]])
+        result.low1_date = _point_date(bars, double["first"], "low_date")
         result.low1_price = _round(double["first_price"])
-        result.low2_date = _date_text(bars.index[double["second"]])
+        result.low2_bar_date = _date_text(bars.index[double["second"]])
+        result.low2_date = _point_date(bars, double["second"], "low_date")
         result.low2_price = _round(double["second_price"])
         result.low_gap_bars = str(double["gap"])
         result.low_price_diff = _round(double["diff"])
         result.neckline = _round(double["neckline"])
+        result.neckline_date = _point_date(bars, double["neckline_at"], "high_date")
         result.mid_rebound = _round(double["rebound"])
         broken, when = _close_break(bars, double["second"] + 1, double["neckline"])
         result.breakout_state = "yes" if broken else "no"
@@ -316,6 +333,9 @@ def weekly_bars(daily: pd.DataFrame, calendar) -> pd.DataFrame:
                 "volume": sum(float(item[1].get("volume", 0) or 0) for item in items),
                 "week_complete": last_day == ending,
                 "scheduled_week_end": ending.isoformat(),
+                "low_date": min(items, key=lambda item: float(item[1]["low"]))[0].isoformat(),
+                "high_date": max(items, key=lambda item: float(item[1]["high"]))[0].isoformat(),
+                "close_date": last_day.isoformat(),
             }
         )
         index.append(last_day)

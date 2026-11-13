@@ -73,13 +73,27 @@ def _applicable(labels: set[str], themes: list[str]) -> set[str]:
     return applicable
 
 
+def _availability(snapshot: dict) -> datetime | None:
+    """When the ranking may be treated as public.
+
+    ``run_created_at`` is only the workflow start. A ranking is usable once the
+    scan job that publishes it has ``completed_at``, with a job id. ``updated_at``
+    and the start time are not substitutes.
+    """
+    if str(snapshot.get("availability_source") or "") != "actions_job_completed_at":
+        return None
+    if not str(snapshot.get("job_id") or "").strip():
+        return None
+    return parse_time(snapshot.get("available_at"))
+
+
 def _usable(snapshot: dict, asof: datetime | None, *, allow_later: bool) -> bool:
-    published = parse_time(snapshot.get("run_created_at"))
-    if published is None:
+    if allow_later:
+        return True
+    available = _availability(snapshot)
+    if available is None or asof is None:
         return False
-    if allow_later or asof is None:
-        return allow_later
-    return published <= asof
+    return available <= asof
 
 
 def _on_day(snapshots: list[dict], day: date, asof: datetime | None, *, allow_later: bool) -> dict | None:
@@ -91,7 +105,7 @@ def _on_day(snapshots: list[dict], day: date, asof: datetime | None, *, allow_la
     ]
     if not choices:
         return None
-    return max(choices, key=lambda row: str(row.get("run_created_at") or ""))
+    return max(choices, key=lambda row: str(row.get("available_at") or row.get("run_created_at") or ""))
 
 
 def _rank_of(labels: set[str], snapshot: dict | None) -> int | None:
@@ -207,7 +221,18 @@ def classify_sector(
         "posterior_lead_since": "",
         "posterior_first_top3_date": "",
         "posterior_first_top3_run_id": "",
+        "posterior_first_top3_run_created_at": "",
+        "posterior_first_top3_available_at": "",
+        "posterior_first_top3_job_id": "",
+        "posterior_first_top3_job_name": "",
+        "posterior_first_top3_job_conclusion": "",
+        "posterior_first_top3_job_source": "",
         "posterior_first_top3_published_at": "",
+        "asof_snapshot_run_created_at": "",
+        "asof_snapshot_job_id": "",
+        "asof_snapshot_job_name": "",
+        "asof_snapshot_job_conclusion": "",
+        "asof_snapshot_job_source": "",
         "posterior_first_rank1_date": "",
         "posterior_sessions_to_top3": "",
         "posterior_role": "description_only_from_the_top3_event_not_from_the_push",
@@ -230,7 +255,12 @@ def classify_sector(
     else:
         result["asof_snapshot_run_id"] = str(same_day.get("run_id") or "")
         # Evidence of when that radar run started. Not a price timestamp.
-        result["asof_snapshot_published_at"] = str(same_day.get("run_created_at") or "")
+        result["asof_snapshot_run_created_at"] = str(same_day.get("run_created_at") or "")
+        result["asof_snapshot_published_at"] = str(same_day.get("available_at") or "")
+        result["asof_snapshot_job_id"] = str(same_day.get("job_id") or "")
+        result["asof_snapshot_job_name"] = str(same_day.get("job_name") or "")
+        result["asof_snapshot_job_conclusion"] = str(same_day.get("job_conclusion") or "")
+        result["asof_snapshot_job_source"] = str(same_day.get("availability_source") or "")
         result["mapping_historically_valid"] = "no"
         rank = _rank_of(labels, same_day) if _complete_top3(same_day) else None
         if rank is not None:
@@ -344,6 +374,12 @@ def _fill_posterior(
             result["posterior_first_top3_date"] = day.isoformat()
             result["posterior_lead_since"] = day.isoformat()
             result["posterior_first_top3_run_id"] = str((snapshot or {}).get("run_id") or "")
-            result["posterior_first_top3_published_at"] = str((snapshot or {}).get("run_created_at") or "")
+            result["posterior_first_top3_run_created_at"] = str((snapshot or {}).get("run_created_at") or "")
+            result["posterior_first_top3_available_at"] = str((snapshot or {}).get("available_at") or "")
+            result["posterior_first_top3_job_id"] = str((snapshot or {}).get("job_id") or "")
+            result["posterior_first_top3_job_name"] = str((snapshot or {}).get("job_name") or "")
+            result["posterior_first_top3_job_conclusion"] = str((snapshot or {}).get("job_conclusion") or "")
+            result["posterior_first_top3_job_source"] = str((snapshot or {}).get("availability_source") or "")
+            result["posterior_first_top3_published_at"] = result["posterior_first_top3_available_at"]
             result["posterior_sessions_to_top3"] = str(len(sessions_in(calendar, market_date + timedelta(days=1), day)))
             break

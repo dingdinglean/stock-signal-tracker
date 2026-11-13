@@ -263,6 +263,27 @@ def _compare(label: str, left: dict, right: dict, baseline: dict) -> str:
     return text + "两组都过了计数门槛，仍只是同一历史里的描述，不是因果。"
 
 
+def _count_label(rows: list[dict], predicate) -> str:
+    return f"{sum(1 for row in rows if predicate(row))}/{len(rows)}"
+
+
+def _pattern_layers(cohort: str, winners: list[dict], losers: list[dict]) -> str:
+    """Exclusive primary label and overlapping yes/no flags are different counts."""
+    prefix = "daily_" if cohort == "daily" else "weekly_"
+
+    def layer(name: str, rows: list[dict]) -> str:
+        return (
+            f"{name}主分类（互斥，双底优先）双底 {_count_label(rows, lambda row: row.get('pattern_status')=='double_bottom')}，"
+            f"平台 {_count_label(rows, lambda row: row.get('pattern_status')=='platform')}，"
+            f"急跌企稳 {_count_label(rows, lambda row: row.get('pattern_status')=='sharp_stabilize')}。"
+            f"{name}可重叠检测 {prefix}double_bottom {_count_label(rows, lambda row: row.get(prefix+'double_bottom')=='yes')}，"
+            f"{prefix}platform {_count_label(rows, lambda row: row.get(prefix+'platform')=='yes')}，"
+            f"{prefix}sharp_stabilize {_count_label(rows, lambda row: row.get(prefix+'sharp_stabilize')=='yes')}。"
+        )
+
+    return layer("盈利组", winners) + layer("亏损或持平组", losers) + "可重叠检测可以同时为 yes。主分类写成 0 只表示它没有当上主标签，不表示没有识别到该形态。"
+
+
 def six_answers(groups: list[dict], rows: list[dict], params: StudyParams | None = None) -> list[dict[str, str]]:
     """Six questions. Small cells are described and then explicitly not concluded."""
     params = params or STUDY_PARAMS
@@ -287,16 +308,11 @@ def six_answers(groups: list[dict], rows: list[dict], params: StudyParams | None
         text = (
             f"研究样本 {len(sample)} 条正式推送、{len({row.get('symbol') for row in sample})} 只股票，"
             f"推送日 {span}。20 日收益已成熟的盈利 {len(winners)}、亏损或持平 {len(losers)}，未成熟 {immature}。"
-            f"盈利记录的形态{_mode_line(winners, 'pattern_status')}；板块状态{_mode_line(winners, 'sector_status')}；"
+            f"盈利记录的主分类{_mode_line(winners, 'pattern_status')}；板块状态{_mode_line(winners, 'sector_status')}；"
             f"信号时突破{_mode_line(winners, 'breakout_state')}。"
-            f"亏损或持平记录的形态{_mode_line(losers, 'pattern_status')}。"
-            f"盈利组：双底 {sum(row.get('pattern_status')=='double_bottom' for row in winners)}/{len(winners) or 0}，"
-            f"平台 {sum(row.get('pattern_status')=='platform' for row in winners)}/{len(winners) or 0}，"
-            f"急跌企稳 {sum(row.get('pattern_status')=='sharp_stabilize' for row in winners)}/{len(winners) or 0}。"
-            f"亏损或持平组：双底 {sum(row.get('pattern_status')=='double_bottom' for row in losers)}/{len(losers) or 0}，"
-            f"平台 {sum(row.get('pattern_status')=='platform' for row in losers)}/{len(losers) or 0}，"
-            f"急跌企稳 {sum(row.get('pattern_status')=='sharp_stabilize' for row in losers)}/{len(losers) or 0}。"
-            "亏损组里也出现的形态不能当过滤。个股先形成形态、之后板块才转强，只是后验，不是入场条件。"
+            f"亏损或持平记录的主分类{_mode_line(losers, 'pattern_status')}。"
+            + _pattern_layers(cohort, winners, losers) +
+            "亏损组里也出现的可重叠形态不能当过滤。个股先形成形态、之后板块才转强，只是后验，不是入场条件。"
             f"T+5 成熟分母另见分组 return_5d_n，不并进 20 日分母。"
         )
         winner_patterns = Counter(str(row.get("pattern_status") or "unknown") for row in winners)
@@ -366,7 +382,7 @@ def six_answers(groups: list[dict], rows: list[dict], params: StudyParams | None
             f"{cohort}/推送后转入强势：出现过精确 Top3 的 N={post.get('n_signals')}，"
             f"从该事件收盘起的 20 日收益分母 {post.get('return_after_top3_20d_n')}、均值 {_fmt_num(post.get('return_after_top3_20d_mean', ''))}，"
             f"对应高水位回撤分母 {post.get('highwater_dd_after_top3_20d_n')}。"
-            "事件日收盘时排名还没发布，这不是可成交收益。可交易口径从该日快照发布时间之后的下一档开盘起算，"
+            "事件日收盘时排名还没发布，这不是可成交收益。可交易口径从该日雷达 scan job completed_at 之后的下一档开盘起算，不用 run_created_at。"
             f"其 20 日分母 {post.get('tradable_after_top3_20d_n')}、均值 {_fmt_num(post.get('tradable_after_top3_20d_mean', ''))}。"
             "这不是从推送日 return_20d 起算，也不能当入场条件。"
         )

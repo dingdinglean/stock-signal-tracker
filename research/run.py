@@ -75,6 +75,71 @@ def _run_meta(run: dict, repo: str, workflow: str) -> dict[str, str]:
     }
 
 
+def load_strength_jobs(cache_file: Path, run_ids: set[str], *, fetch: bool) -> dict[str, dict]:
+    """Scan-job completion for strength-radar runs. Start time is not availability."""
+    saved: dict[str, dict] = {}
+    if cache_file.exists():
+        try:
+            payload = json.loads(cache_file.read_text(encoding="utf-8"))
+            saved = payload.get("runs", {}) if isinstance(payload, dict) else {}
+        except json.JSONDecodeError:
+            saved = {}
+    if not fetch:
+        return saved
+    try:
+        from github_artifacts import GitHubArtifactError, GitHubPublicArtifacts
+    except Exception:
+        return saved
+    client = GitHubPublicArtifacts()
+    found = dict(saved)
+    ids = {str(run_id) for run_id in run_ids if str(run_id)}
+    try:
+        runs = client.workflow_runs("dingdinglean/strong-pullback-screener", "strong_pullback_screener.yml", since=datetime(2026, 8, 1, tzinfo=timezone.utc), max_pages=5)
+    except Exception:
+        runs = []
+    ids.update(str(run.get("id")) for run in runs if run.get("id"))
+    for run_id in sorted(ids):
+        current = found.get(run_id, {})
+        if current.get("job_id") and current.get("job_completed_source") == "actions_job_completed_at":
+            continue
+        try:
+            jobs = client._get(f"https://api.github.com/repos/dingdinglean/strong-pullback-screener/actions/runs/{run_id}/jobs?per_page=100").json()
+        except GitHubArtifactError:
+            continue
+        chosen = choose_scan_job(list(jobs.get("jobs") or []))
+        if chosen is None:
+            continue
+        found[run_id] = {
+            "job_id": str(chosen.get("id") or ""),
+            "job_name": str(chosen.get("name") or ""),
+            "job_conclusion": str(chosen.get("conclusion") or ""),
+            "job_completed_at": str(chosen.get("completed_at") or ""),
+            "job_completed_source": "actions_job_completed_at",
+        }
+    if found != saved:
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        temporary = cache_file.with_suffix(".json.tmp")
+        temporary.write_text(json.dumps({"runs": found}, ensure_ascii=False, indent=2), encoding="utf-8")
+        temporary.replace(cache_file)
+    return found
+
+
+def _with_strength_availability(snapshots: list[dict[str, str]], jobs: dict[str, dict]) -> list[dict[str, str]]:
+    """Copy snapshots. Availability is the scan-job completion, never run_created_at."""
+    enriched = []
+    for row in snapshots:
+        item = dict(row)
+        meta = jobs.get(str(row.get("run_id") or ""), {})
+        if meta.get("job_completed_source") == "actions_job_completed_at" and meta.get("job_id") and meta.get("job_completed_at"):
+            item["available_at"] = meta["job_completed_at"]
+            item["availability_source"] = "actions_job_completed_at"
+            item["job_id"] = meta["job_id"]
+            item["job_name"] = meta.get("job_name", "")
+            item["job_conclusion"] = meta.get("job_conclusion", "")
+        enriched.append(item)
+    return enriched
+
+
 def _points(left: str, right: str) -> str:
     if not left or not right:
         return ""
@@ -211,7 +276,15 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
     before = _protected(root)
     history = _read_csv(root / "data" / "signal_history.csv")
     frozen = [(row.get("signal_id"), row.get("push_price"), row.get("signal_price")) for row in history]
-    snapshots = _read_csv(root / "data" / "sector_snapshots.csv")
+    raw_snapshots = _read_csv(root / "data" / "sector_snapshots.csv")
+    snapshots = _with_strength_availability(
+        raw_snapshots,
+        load_strength_jobs(
+            root / "data" / "research_cache" / "strength_jobs.json",
+            {str(row.get("run_id") or "") for row in raw_snapshots},
+            fetch=fetch,
+        ),
+    )
     needed_runs = {str(row.get("source_run_id") or "") for row in history if row.get("source_run_id")}
     run_index, run_errors = load_run_index(root / "data" / "research_cache" / "run_times.json", fetch=fetch, needed=needed_runs)
     symbols = sorted({row.get("symbol", "").upper() for row in history if row.get("symbol")})
@@ -336,7 +409,7 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
         status, breakout = _study_pattern(cohort, daily_pattern, weekly_pattern)
         row["pattern_status"] = status
         row["breakout_state"] = breakout
-        sector = classify_sector(candidate_labels(event), snapshots, push, asof, calendar, SECTOR_PARAMS, now)
+        sector = classify_sector(candidate_labels(event), snapshots, push, entry_asof, calendar, SECTOR_PARAMS, now)
         row.update(sector)
         row["sector_status"] = {"strong": "strong", "not_strong": "not_strong"}.get(sector["asof_sector_status"], "unknown")
         row["posterior_sector_entered"] = sector["posterior_10d_entered_top3"]
@@ -348,6 +421,7 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
         row["highwater_intraday_order"] = "unknown; high is applied before low, a conservative path assumption"
         event_day = parse_day(row.get("posterior_first_top3_date"))
         row["return_after_top3_note"] = "事件日收盘起的收益是后验描述。该日收盘时排名尚未发布，不能成交，也不能当成可实现策略结果。"
+        row["tradable_after_top3_note"] = "可交易入场只使用该事件日强势雷达 scan job completed_at 之后的下一档开盘。run_created_at 不是公开时间。没有 job id 则为未知。"
         if event_day is None or frame is None:
             row["return_after_top3_10d"] = ""
             row["return_after_top3_20d"] = ""
@@ -363,12 +437,15 @@ def execute(root: Path, *, full: bool, fetch: bool, today: date | None = None) -
             row["highwater_dd_after_top3_10d"] = path_highwater_percent(frame, event_day, 10, calendar)
             row["highwater_dd_after_top3_20d"] = path_highwater_percent(frame, event_day, 20, calendar)
             row["highwater_dd_after_top3_20d_todate"] = path_highwater_todate(frame, event_day, 20, calendar)
-            published = parse_time(row.get("posterior_first_top3_published_at"))
+            published = parse_time(row.get("posterior_first_top3_available_at"))
             tradable_day = next_entry_session(calendar, published) if published is not None else None
             row["tradable_after_top3_entry_date"] = tradable_day.isoformat() if tradable_day else ""
             row["tradable_after_top3_10d"] = open_to_later_close_percent(frame, tradable_day, 10, calendar) if tradable_day else ""
             row["tradable_after_top3_20d"] = open_to_later_close_percent(frame, tradable_day, 20, calendar) if tradable_day else ""
-            row["tradable_after_top3_note"] = "下一档开盘用的是该事件日快照自己的 run_created_at。没有这个时间，或其后窗口不满，则为未知。不用更晚日期的排名。"
+            row["tradable_after_top3_note"] = (
+                "可交易入场是该事件日强势雷达 scan job completed_at 之后的下一档开盘，不是 run_created_at。"
+                "没有 job id 和 completed_at 则为未知。不用更晚日期的排名。"
+            )
         research_rows.append(row)
         if cohort not in {"daily", "weekly"} or entry_asof is None:
             continue
