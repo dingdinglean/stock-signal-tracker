@@ -85,3 +85,30 @@ python tracker.py
 通知仍仅由原有新增信号、固定期限里程碑和有效性结果触发。动态收益、隐藏/恢复
 本身不额外触发邮件。`preview_email=true` 从当前已保存历史生成一次测试邮件，
 不重跑选股、不改账本；常规更新同时保存最新HTML预览并上传报告。
+
+## 形态研究
+
+`python -m research.run --dry-run` 只读正式账本，单独统计日线和周线。4 小时不进入
+统计，月线历史保留但不与日/周混在一组；两条历史都不删除。邮件里的亏损隐藏不会
+把亏损记录排除出研究样本。形态参数、5/10 日板块窗口和 5 bps 成本都是事先写死的
+研究假设，不是筛选或买入条件。
+
+板块名次来自已冻结的 `data/sector_snapshots.csv`。`market_date` 是市场日。
+雷达运行的 `created_at` 只说明那次运行何时创建，不是价格时钟，也不用来给 K 线排序。
+只有当天三条主题都在、且冻结标签和当天榜单是同一套词汇时，才把不在榜上记为非强势。
+名单不全或词汇对不上记为未知。后 5/10 个交易日还没走完时，不能记成“没有转入强势”。
+推送之后的板块变化只写在后验字段里。
+
+价格 as-of 使用源 workflow 的 `created_at` 与 `run_started_at` 中较早者，并标明这是
+运行启动的代理，不是邮件实际发送时刻。`updated_at` 不参与。日 K 要等该节收盘再加
+20 分钟；未结束的周 K 不用整周。没有这两个时间字段时，形态和板块 as-of 保持未知。
+
+行情缓存在 `data/research_cache/`。下载失败或空表不会覆盖已有文件。Actions 用
+`actions/cache`，key 为 `research-price-v1-<run_id>`，restore-keys 为
+`research-price-v1-`。空缓存不保存。并发组 `research-price-cache` 排队而不取消，
+避免旧运行最后写完变成下一次恢复到的缓存。
+
+研究不进入 `tracker.yml`。独立工作流 **Research dry-run** 在 UTC 周二至周六
+`30 1 * * 2-6` 自动跑，位于工作日 23:30 UTC 的追踪之后。它不发邮件、不写账本。
+手动输入 `research_dry_run` 默认 true。仓库没有 Pages；完整 HTML/CSV 在该工作流的
+artifact `signal-research-report-<run_id>` 里，保留 30 天。

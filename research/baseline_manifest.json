@@ -1,0 +1,110 @@
+{
+  "git_sha": "6e279606a7efed49a9c1e6a866a4e6c3500372bf",
+  "files": {
+    "data/signal_history.csv": {
+      "sha256": "bb611cdd626ebe3ccd5fb0a6065c3af6137931f5c9a71522ab2e31d4412e0002",
+      "bytes": 47151,
+      "rows": 71
+    },
+    "data/sector_snapshots.csv": {
+      "sha256": "08b97aaf71ffc6aef80e1edb0e05ebf44dec2fe29d1c35a12ca650976503e48f",
+      "bytes": 5022,
+      "rows": 49
+    },
+    "data/state.json": {
+      "sha256": "219577c901b13165df80e73238b766be186f86cd11f387e047c674379f844448",
+      "bytes": 2664
+    },
+    "data/sector_metadata_cache.json": {
+      "sha256": "66e4c929be402ca482606e43074859abe17d6ad3024d6db1d2200deac2bc14cd",
+      "bytes": 89586
+    },
+    "data/events.csv": {
+      "sha256": "a9aaa61aaf116eb62460219b8cb327e398d3fa2167263cc51bbf312702e835dc",
+      "bytes": 450,
+      "rows": 0
+    },
+    "tracker.py": {
+      "sha256": "0f1129c2cba809961901a68f1210fffc7a7c026ec29b21c190b155704fad1129",
+      "bytes": 26048
+    },
+    "performance.py": {
+      "sha256": "045dd45d8f2badf54de6391be5d54e50bba48e116e2e2c804ee7f6f1a8125165",
+      "bytes": 5378
+    },
+    "dynamic_tracking.py": {
+      "sha256": "a028b1ba2982e08376c7611a86fceb150b7e1000a02d7d06ea6a9bb49458e777",
+      "bytes": 7854
+    },
+    "notifications.py": {
+      "sha256": "041f7d9b75adb9ee7a6d3d21623fb6c6602c728ce4b1f720818e197a089cf935",
+      "bytes": 17682
+    },
+    "email_sender.py": {
+      "sha256": "31cdfb723143c59cb523508400adc46bdca9ea28982074aa9ae3d41ef70a590a",
+      "bytes": 2196
+    },
+    "sector_map.py": {
+      "sha256": "ee54c0f69ca30bef84e8e83cfa5792f33793f73a2e0d7777ad3bba344048329a",
+      "bytes": 11083
+    },
+    "publish_changes.py": {
+      "sha256": "3ae0d21e49c63e3a5676e75832503f52881d4130916c4c3228bf2b2a0c6dbca7",
+      "bytes": 27030
+    },
+    "github_artifacts.py": {
+      "sha256": "9bc8c6d4533e347b0a02774b281fcb868517179f6c893613e8a4d473f3aff205",
+      "bytes": 4996
+    },
+    ".github/workflows/tracker.yml": {
+      "sha256": "3aa5a3ff54df468936b3e23c6c0f4defb9c1a946c1c4cefaa41e50bfc7ccc74a",
+      "bytes": 5265
+    },
+    ".github/workflows/ci.yml": {
+      "sha256": "b69198bcd413301349b1e3dfc7b002307e0221e891086cc2f7fe4023b8db089b",
+      "bytes": 540
+    },
+    ".github/workflows/refresh_constituents.yml": {
+      "sha256": "522583f1ebe09e9edea74a5107a70ecf8f314b9b764948cd70487b32dc5fa5ea",
+      "bytes": 1030
+    },
+    ".github/workflows/test_email.yml": {
+      "sha256": "722d8eb9c0d2907d3b4629de86cc9bf6de71aa18d8dace763a93d679b2a93079",
+      "bytes": 781
+    },
+    "tests/test_tracker.py": {
+      "sha256": "731bc88df287e222623d261b548a4d880a5cebd610bf36339421f31700f72663",
+      "bytes": 29258
+    },
+    "tests/test_dynamic_tracking.py": {
+      "sha256": "0ba281b7ea21f07d827b3a03120d440da9b13a0f1fb1f256be037b3a871275b9",
+      "bytes": 12683
+    },
+    "tests/test_publish_changes.py": {
+      "sha256": "6d4895ae7052eeb27e5dc05c2e1e08ce55a89195e731fb83fb43fead50157bf0",
+      "bytes": 23941
+    },
+    "tests/test_sector_map.py": {
+      "sha256": "c1a9597fdf2e6da0789d0e0d68711e76e9a0ad1b3e2a66ccc1b8c711c2ec703d",
+      "bytes": 9082
+    },
+    "tests/test_requirements.py": {
+      "sha256": "62043f92be355c660faaa83510b1ebae559c02d2a93782556e96d6576edd8edc",
+      "bytes": 799
+    }
+  },
+  "signal_rows": 71,
+  "snapshot_rows": 49,
+  "event_rows": 0,
+  "backup_tar": "/opt/cursor/artifacts/stock-signal-tracker-baseline-6e279606.tar.gz",
+  "backup_tar_sha256": "bf020e91527d094ffa1b609a231dd7d1c4d32d1f2d845929fced6007e69ba9fb",
+  "backup_tar_bytes": 21540,
+  "backup_members": [
+    "data/signal_history.csv",
+    "data/sector_snapshots.csv",
+    "data/state.json",
+    "data/sector_metadata_cache.json",
+    "data/events.csv"
+  ],
+  "note": "Hashes are of the ledger and production files at git 6e279606 before the research module. The tar contains those data files only. No SMTP secret is included. market_date in sector snapshots is not a git commit date."
+}

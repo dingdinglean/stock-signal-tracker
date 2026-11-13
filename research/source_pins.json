@@ -1,0 +1,19 @@
+{
+  "observed_at_utc": "2026-11-13T02:43:00Z",
+  "note": "Read-only pins of the default-branch HEADs observed for this study. No file in either source repository was modified. Sector ranks are not recomputed from these commits; they come from data/sector_snapshots.csv, whose market_date and run_created_at are the observation times.",
+  "gupiao": {
+    "repo": "dingdinglean/gupiao",
+    "commit": "3e95f1613f8c36ce1bf986ce07cdfc6fe25ffe34",
+    "commit_time_utc": "2026-10-10T10:20:41Z",
+    "workflows_read": ["screen.yml", "long_screen.yml"],
+    "use": "Formal-push artifacts were already ingested into data/signal_history.csv. This study reads that ledger and the source run created_at. It does not rerun DXDX."
+  },
+  "strong_pullback_screener": {
+    "repo": "dingdinglean/strong-pullback-screener",
+    "commit": "f112920123cec74903294a865499e4a6473330c7",
+    "commit_time_utc": "2026-10-10T10:20:53Z",
+    "artifact": "market-strength-radar-v4 sector_strength.csv",
+    "published_ranks": "Top 3 only. The tracker froze those three themes per market_date in data/sector_snapshots.csv.",
+    "use": "Exact string match of a frozen industry or curated theme against that day's published top 3. Ranks beyond 3 are not invented."
+  }
+}
